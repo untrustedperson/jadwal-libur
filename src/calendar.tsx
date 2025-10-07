@@ -163,7 +163,7 @@ export default function Calendar() {
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      fontSize: 20,
+      fontSize: 24,
     };
     const btnStyle: React.CSSProperties = {
       border: "none",
