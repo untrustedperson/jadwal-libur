@@ -13,12 +13,23 @@ export default function Register() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
     try {
+      // 🔹 Daftarkan akun ke Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
+
+      // 🔹 Simpan role default "viewer" di Firestore
       await setDoc(doc(db, "roles", uid), { email, role: "viewer" });
+
+      // 🔹 Reset dan simpan role baru ke localStorage
+      localStorage.clear();
+      localStorage.setItem("role", "viewer");
+
+      // 🔹 Arahkan ke halaman kalender
       navigate("/calendar");
     } catch (err: any) {
+      console.error("Register error:", err);
       if (err.code === "auth/weak-password") {
         setError("Password minimal 6 karakter!");
       } else if (err.code === "auth/email-already-in-use") {
@@ -71,16 +82,17 @@ export default function Register() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    height: "100vh",
-    width: "100vw", // Pastikan penuh
+    minHeight: "100vh",
+    width: "100vw",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg, #16a34a, #4ade80)",
-    overflow: "hidden", // 🔒 cegah scroll horizontal
+    overflowX: "hidden", // 🔒 mencegah background sisi kanan
+    overflowY: "auto",
     margin: 0,
     padding: "0 16px",
-    boxSizing: "border-box", // pastikan padding tidak melebihi viewport
+    boxSizing: "border-box",
   },
   card: {
     background: "#fff",

@@ -13,17 +13,32 @@ export default function Login() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
     try {
+      // 🔹 Login Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
+
+      // 🔹 Ambil role user dari Firestore
       const userDoc = await getDoc(doc(db, "roles", uid));
       const role = userDoc.exists() ? userDoc.data().role : "viewer";
 
+      // 🔹 Bersihkan localStorage dulu agar role lama tidak ikut
+      localStorage.clear();
       localStorage.setItem("role", role);
+
+      // 🔹 Arahkan sesuai role
       if (role === "dev") navigate("/dashboard");
       else navigate("/calendar");
     } catch (err: any) {
-      setError("Email atau password salah.");
+      console.error("Login error:", err);
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        setError("Email atau password salah.");
+      } else if (err.code === "auth/user-not-found") {
+        setError("Akun tidak ditemukan.");
+      } else {
+        setError("Terjadi kesalahan saat login.");
+      }
     }
   }
 
@@ -69,16 +84,17 @@ export default function Login() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    height: "100vh",
-    width: "100vw", // Pastikan penuh
+    minHeight: "100vh",
+    width: "100vw",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-    overflow: "hidden", // 🔒 cegah scroll horizontal
+    overflowX: "hidden", // 🔒 cegah background kanan
+    overflowY: "auto",
     margin: 0,
     padding: "0 16px",
-    boxSizing: "border-box", // pastikan padding tidak melebihi viewport
+    boxSizing: "border-box",
   },
   card: {
     background: "#fff",
@@ -116,7 +132,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#fff",
     fontWeight: 600,
     cursor: "pointer",
-    transition: "0.2s",
+    transition: "background 0.2s",
     width: "100%",
   },
   error: {
@@ -134,3 +150,4 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
   },
 };
+
