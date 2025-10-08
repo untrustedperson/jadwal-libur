@@ -22,6 +22,8 @@ export default function Login() {
       const userDoc = await getDoc(doc(db, "roles", uid));
       const role = userDoc.exists() ? userDoc.data().role : "viewer";
 
+      console.log("User logged in with role:", role);
+
       // simpan role ke localStorage SEBELUM navigate
       localStorage.setItem("role", role);
 
