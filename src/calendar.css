@@ -8,3 +8,11 @@
   font-size: 15px;
   font-weight: 600;
 }
+
+.fc-event {
+  min-height: 40px;
+  touch-action: manipulation; /* menghindari delay klik */
+}
+.fc-daygrid-day {
+  cursor: pointer;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
@@ -50,7 +50,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   // === Create ===
   async function handleDateClick(info: any) {
     if (!canEdit) return;
-    const title = prompt("Masukkan nama hari libur:");
+    const title = window.prompt("Masukkan keterangan :") ?? "";
     if (!title) return;
     try {
       await addDoc(eventsCollection, { title, start: info.dateStr, end: info.dateStr });
@@ -63,7 +63,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   // === Update ===
   async function handleEventClick(info: any) {
     if (!canEdit) return;
-    const newTitle = prompt("Ubah nama hari libur:", info.event.title);
+    const newTitle = window.prompt("Ubah keterangan :", info.event.title);
     if (!newTitle) return;
     try {
       const ref = doc(db, "events", info.event.id);
@@ -87,29 +87,54 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   // === Custom event content (dengan tombol hapus) ===
   function renderEventContent(arg: any) {
-    const onDelete = async (e: ReactMouseEvent<HTMLButtonElement>) => {
-      e.stopPropagation();
-      if (!canEdit) return;
-      const ok = confirm(`Hapus "${arg.event.title}"?`);
-      if (!ok) return;
-      await deleteEventById(arg.event.id);
-    };
+  const onDelete = async (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    if (!canEdit) return;
+    const ok = confirm(`Hapus "${arg.event.title}"?`);
+    if (!ok) return;
+    await deleteEventById(arg.event.id);
+  };
 
-    const wrap: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, width: "100%" };
-    const title: CSSProperties = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 14, fontWeight: 500 };
-    const btn: CSSProperties = { border: "none", background: "transparent", cursor: "pointer", fontSize: 14, lineHeight: 1 };
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
+      <span
+        style={{
+          fontSize: "14px",
+          fontWeight: "500",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          maxWidth: "80%",
+        }}
+      >
+        {arg.event.title}
+      </span>
+      {canEdit && (
+        <button
+          onClick={onDelete as any}
+          onTouchStart={onDelete as any}   // ✅ tangani tap mobile
+          style={{
+            background: "transparent",
+            border: "none",
+            fontSize: 16,
+            cursor: "pointer",
+            padding: 4,
+          }}
+        >
+          🗑️
+        </button>
+      )}
+    </div>
+  );
+}
 
-    return (
-      <div style={wrap}>
-        <span style={title} title={arg.event.title}>{arg.event.title}</span>
-        {canEdit && (
-          <button style={btn} onClick={onDelete} aria-label="Hapus" title="Hapus">
-            🗑️
-          </button>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div style={{ padding: 20 }}>
@@ -140,15 +165,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       </div>
 
       {/* Kalender */}
-      <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        events={events}
-        height="auto"
-        dateClick={canEdit ? handleDateClick : undefined}
-        eventClick={canEdit ? handleEventClick : undefined}
-        eventContent={renderEventContent}
-      />
+    <FullCalendar
+  plugins={[dayGridPlugin, interactionPlugin]}
+  initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+  headerToolbar={{
+    left: "prev,next",
+    center: "title",
+    right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+  }}
+  events={events}
+  height="auto"
+  eventContent={renderEventContent}
+  dateClick={handleDateClick}
+  eventClick={handleEventClick}
+/>
+
+
     </div>
   );
 }
