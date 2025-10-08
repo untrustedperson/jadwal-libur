@@ -1,41 +1,25 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-
 import Login from "./Login";
 import Register from "./Register";
 import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
 
-/**
- * Komponen route khusus: hanya role tertentu yang bisa akses
- */
-import type { ReactElement } from "react";
-
-function PrivateRoute({
-  children,
-  allowedRoles,
-}: {
-  children: ReactElement;
+interface PrivateRouteProps {
+  children: React.ReactElement;
   allowedRoles: string[];
-}) {
+}
 
-  const [role, setRole] = useState<string | null>(null);
+function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
+  const role = localStorage.getItem("role");
 
-  useEffect(() => {
-    const storedRole = localStorage.getItem("role");
-    setRole(storedRole);
-  }, []);
-
-  if (role === null) {
-    // Tunggu role terbaca dulu (hindari redirect flicker)
-    return <div style={{ textAlign: "center", padding: "50px" }}>Memuat...</div>;
+  if (!role) {
+    return <Navigate to="/login" replace />;
   }
 
-  // Tidak login → arahkan ke login
-  if (!role) return <Navigate to="/login" replace />;
-
-  // Role tidak diizinkan → arahkan ke calendar (readonly)
-  if (!allowedRoles.includes(role)) return <Navigate to="/calendar" replace />;
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/calendar" replace />;
+  }
 
   return children;
 }
@@ -43,25 +27,32 @@ function PrivateRoute({
 export default function App() {
   const [role, setRole] = useState<string | null>(null);
 
+  // ambil role saat awal render
   useEffect(() => {
-    // Pastikan role dibaca sekali saat app start
     const storedRole = localStorage.getItem("role");
     setRole(storedRole);
   }, []);
 
-  const canEdit = role === "admin" || role === "dev";
+  // update role bila localStorage berubah
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setRole(localStorage.getItem("role"));
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   return (
     <Router>
       <Routes>
-        {/* 🔐 Auth routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* 📅 Calendar (editable hanya untuk admin/dev) */}
-        <Route path="/calendar" element={<Calendar canEdit={canEdit} />} />
+        <Route
+          path="/calendar"
+          element={<Calendar canEdit={role === "admin" || role === "dev"} />}
+        />
 
-        {/* 👑 Dashboard (khusus dev) */}
         <Route
           path="/dashboard"
           element={
@@ -71,7 +62,7 @@ export default function App() {
           }
         />
 
-        {/* 🔁 Default redirect */}
+        {/* Jika tidak ada route cocok, arahkan ke login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

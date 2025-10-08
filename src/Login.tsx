@@ -27,6 +27,13 @@ export default function Login() {
       localStorage.clear();
       localStorage.setItem("role", role);
 
+      if (role === "dev") {
+      navigate("/dashboard");
+    } else {
+      navigate("/calendar");
+    }
+    window.location.reload();
+
       // 🔹 Arahkan sesuai role
       if (role === "dev") navigate("/dashboard");
       else navigate("/calendar");
@@ -40,6 +47,9 @@ export default function Login() {
         setError("Terjadi kesalahan saat login.");
       }
     }
+
+    
+
   }
 
   return (

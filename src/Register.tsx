@@ -26,6 +26,8 @@ export default function Register() {
       localStorage.clear();
       localStorage.setItem("role", "viewer");
 
+      
+
       // 🔹 Arahkan ke halaman kalender
       navigate("/calendar");
     } catch (err: any) {

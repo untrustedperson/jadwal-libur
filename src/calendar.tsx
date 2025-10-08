@@ -37,6 +37,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   async function loadEvents() {
     try {
+      // Tambahkan di awal setiap fungsi CRUD
+    if (!canEdit) {
+      alert("Akses ditolak: hanya admin atau dev yang bisa mengubah kalender!");
+      return;
+    }
+
       const snap = await getDocs(eventsCollection);
       const data = snap.docs.map((d) => ({
         id: d.id,
@@ -50,6 +56,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   // ===== Create =====
   async function handleDateClick(info: any) {
+    // Tambahkan di awal setiap fungsi CRUD
+    if (!canEdit) {
+      alert("Akses ditolak: hanya admin atau dev yang bisa mengubah kalender!");
+      return;
+    }
+
     if (!canEdit) return;
 
     // Gunakan prompt yang lebih stabil di mobile
@@ -70,8 +82,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   // ===== Update =====
   async function handleEventClick(info: any) {
-    if (!canEdit) return;
+    // Tambahkan di awal setiap fungsi CRUD
+    if (!canEdit) {
+      alert("Akses ditolak: hanya admin atau dev yang bisa mengubah kalender!");
+      return;
+    }
 
+    if (!canEdit) return;
     const newTitle = window.prompt("Ubah nama hari libur:", info.event.title);
     if (!newTitle?.trim()) return;
 
@@ -86,6 +103,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   // ===== Delete =====
   async function deleteEventById(eventId: string) {
+    // Tambahkan di awal setiap fungsi CRUD
+    if (!canEdit) {
+      alert("Akses ditolak: hanya admin atau dev yang bisa mengubah kalender!");
+      return;
+    }
     if (!canEdit) return;
     try {
       await deleteDoc(doc(db, "events", eventId));
@@ -99,6 +121,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   function renderEventContent(arg: any) {
     const onDelete = async (e: any) => {
       e.stopPropagation();
+      // Tambahkan di awal setiap fungsi CRUD
+      if (!canEdit) {
+      alert("Akses ditolak: hanya admin atau dev yang bisa mengubah kalender!");
+      return;
+    }
       if (!canEdit) return;
       const ok = window.confirm(`Hapus "${arg.event.title}"?`);
       if (!ok) return;
