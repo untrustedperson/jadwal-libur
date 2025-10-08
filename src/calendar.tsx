@@ -119,13 +119,23 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Role: {localStorage.getItem("role") || "viewer"}</span>
           <button
-            onClick={handleLogout}
-            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer", background: "#646cffaa" }}
-            aria-label="Logout"
-            title="Logout"
-          >
-          Logout
-          </button>
+    onClick={handleLogout}
+    style={{
+      padding: "8px 12px",
+      borderRadius: 8,
+      border: "1px solid #1d4ed8",
+      background: "#2563eb",      // biru
+      color: "#fff",               // teks putih
+      fontWeight: 600,
+      cursor: "pointer",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+    }}
+    aria-label="Logout"
+    title="Logout"
+  >
+    Logout
+  </button>
+
         </div>
       </div>
 
