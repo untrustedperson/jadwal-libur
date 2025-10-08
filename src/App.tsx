@@ -8,7 +8,12 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* default masuk ke login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
       <Route path="/login" element={<Login />} />
+
+      {/* butuh login; kalau belum login -> ke /login */}
       <Route
         path="/app"
         element={
@@ -19,7 +24,9 @@ function AppRoutes() {
           )
         }
       />
-      <Route path="*" element={<Navigate to={hasToken ? "/app" : "/login"} replace />} />
+
+      {/* fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
