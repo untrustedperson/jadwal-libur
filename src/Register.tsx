@@ -72,11 +72,15 @@ export default function Register() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     height: "100vh",
+    width: "100vw", // Pastikan penuh
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg, #16a34a, #4ade80)",
-    padding: 16,
+    overflow: "hidden", // 🔒 cegah scroll horizontal
+    margin: 0,
+    padding: "0 16px",
+    boxSizing: "border-box", // pastikan padding tidak melebihi viewport
   },
   card: {
     background: "#fff",
@@ -86,10 +90,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     maxWidth: 380,
     textAlign: "center",
+    boxSizing: "border-box",
   },
   title: {
     marginBottom: 24,
-    color: "#166534",
+    color: "#1e3a8a",
   },
   form: {
     display: "flex",
@@ -102,16 +107,19 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     fontSize: 14,
     outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
   },
   button: {
     padding: "10px",
     borderRadius: 8,
     border: "none",
-    background: "#16a34a",
+    background: "#2563eb",
     color: "#fff",
     fontWeight: 600,
     cursor: "pointer",
     transition: "0.2s",
+    width: "100%",
   },
   error: {
     color: "red",
@@ -123,7 +131,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
   },
   link: {
-    color: "#16a34a",
+    color: "#2563eb",
     fontWeight: 600,
     textDecoration: "none",
   },

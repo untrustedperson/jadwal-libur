@@ -70,11 +70,15 @@ export default function Login() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     height: "100vh",
+    width: "100vw", // Pastikan penuh
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-    padding: 16,
+    overflow: "hidden", // 🔒 cegah scroll horizontal
+    margin: 0,
+    padding: "0 16px",
+    boxSizing: "border-box", // pastikan padding tidak melebihi viewport
   },
   card: {
     background: "#fff",
@@ -84,6 +88,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     maxWidth: 380,
     textAlign: "center",
+    boxSizing: "border-box",
   },
   title: {
     marginBottom: 24,
@@ -100,6 +105,8 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     fontSize: 14,
     outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
   },
   button: {
     padding: "10px",
@@ -110,6 +117,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: "pointer",
     transition: "0.2s",
+    width: "100%",
   },
   error: {
     color: "red",
