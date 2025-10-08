@@ -120,11 +120,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           <span style={{ fontSize: 12, opacity: 0.8 }}>Role: {localStorage.getItem("role") || "viewer"}</span>
           <button
             onClick={handleLogout}
-            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer", background: "#fff" }}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer", background: "#646cffaa" }}
             aria-label="Logout"
             title="Logout"
           >
-            Logout
+          Logout
           </button>
         </div>
       </div>
