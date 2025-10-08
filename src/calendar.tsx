@@ -3,6 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { gapi } from "gapi-script";
+import "./calendar.css";
 
 // ====== GANTI DENGAN PUNYAMU ======
 const CLIENT_ID = "492769852023-k4q40pi273ioncit65l16ptclot4i9sq.apps.googleusercontent.com";
@@ -163,7 +164,7 @@ export default function Calendar() {
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      fontSize: 24,
+      fontSize: 16,
     };
     const btnStyle: React.CSSProperties = {
       border: "none",
