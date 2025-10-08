@@ -38,10 +38,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function loadEvents() {
     try {
       // Tambahkan di awal setiap fungsi CRUD
-    if (!canEdit) {
-      alert("Akses ditolak: hanya admin atau dev yang bisa mengubah kalender!");
-      return;
-    }
 
       const snap = await getDocs(eventsCollection);
       const data = snap.docs.map((d) => ({
