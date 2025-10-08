@@ -1,25 +1,29 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import admin from "firebase-admin";
 
-const projectId   = process.env.FIREBASE_PROJECT_ID!;
-const clientEmail = process.env.FIREBASE_CLIENT_EMAIL!;
-const privateKey  = (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
-
-export function assertEnv() {
-  const missing: string[] = [];
-  if (!projectId)   missing.push("jadwal-libur-app");
-  if (!clientEmail) missing.push("firebase-adminsdk-fbsvc@jadwal-libur-app.iam.gserviceaccount.com");
-  if (!privateKey)  missing.push("-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC6gemVH0EzSGVj\nXmmIXLHfoSL8hjYGglB6Zwh0ddlTkvrTYmgWaOCtj15ZWZgz5rTKXPaciGGxHrzp\nqWE7lUP2JJQAgavmF9ep9dFGw5k28yDrLFZzoG7RJj6R8PYXoi5x1KIa8vB0w/eV\n4PaG9fIBeycnrp8tixU/YO3nCcdtTt3jJDozqvJu4o7XGloX849u0JhurTCKExgc\nxXzHwxRLamwkkidroxrNvQNrMw16jwtMDhOEDtsV9tgD3Nx5t3qUY5GS4I0GWTVD\nxM0Xnhxrv2q0x8n4/yF4rBO/IA+qxCokBW6XgcJGu0tHWLrbqZx79y3gRwHdb9PL\nfC+OOMPbAgMBAAECggEADryXHUj5Q45pMcnS+DWteahndaE71usoZWjgunsEBLOC\nDX54D6qSc4RMMIPWH+ZkdfI/K4J8iEc6fBKoc9HJK0NxTPzx/TNNv3MvPwfTgmEB\nl94f/UY5m120kfQtLb7ggUQLhFTvz6TFr6+1KwLMmstaqQBbjs4E4XDM5iAtWXiV\nikJU/XQa629awDfxVVdwJT603jVlBxBMtjUH/1Dt+eCYkcvlz00YSLNGW8l59Tgt\nzkQN1xaX5OqNKGePQNn67BjZ/aa3YItn+QgjzqNLJz1AG1Qj2GObqglunMbXn9za\nhTeytxCpKuF3eGtFSeQDRwXGSdDpiMrAh1v14whGKQKBgQDrh2Ic17AG1/r5ngg2\n5VUg+O3Cn2ul7dOtlwNOoxG0bZ9ugyde2zPfKUAdx3OgvM3nCIm6SUOWXozMfzoR\nlBGggLMWOI8GaTo/P1d4sBnW9rMam9MGj3ZGkC+P8YRNxPm85cuM0L6nosH16kR4\nIwVKzRf81rf6+xnkgpg0TwrsbQKBgQDKt8hp7lMhRH8Y7VUY1b0O5f/djxL6EUw7\nOCwH3LM43s2F29x5eNdmdwLqy2NBGoYlWIjXkQXzYmChwjLaCY9zo9/nYVYjdrPr\n3HGSn453Mnx79/xvFHboLLzAI32UxsUvGPkS3MJmhAGniHseuSu30VOh+JvDpfWR\nDYJhkJO0ZwKBgBxy4dryAoURGXOFLyDSWpH8/1r+vpXwQB07nF6nO8A7bYJ/vQWs\nHHvcE66FJOZJZ+V8Foa1ysAi84bP50ewRuDIKtmIQ15W3348PGiLfNOGQOP55mdo\ndLTZPaV5Wq26GSBD8W402JKPCjaV8WdBc6YxV7Bmjxp1sg7z50aKNZuRAoGACElg\n+OuUHF0HcQZqnxxFoTFHt0/c77n7SsRuEFg2P1HkRt+I8LI+4+JjjSOJSCUEbMxk\ns6MrAhr4ZkRg/ca8RXbidTvmYIa+rhqRzfOVyEuZCRxHBmdowO7rPFN3E7jYYKd9\nrwa1L6mfw7Bxj/zzy4zUBV/7RhEnq6lItiJJ12sCgYAdrsb4sMG4txRLMeXtQTYc\nLJF33/KYN+0zWuPfZUTrvbQqA/9Vg5SygRr5dqDsyUO6d4sKF4Y5H+OqUdllE/yB\nMGD3lt1rsksviTQJ0McMBRPcZPheoDrBFuB8hLo9LXZgmsrJG0lFa9q9+CQxbYvc\npGGDhhtaNqymi+ktmxdmBg==\n-----END PRIVATE KEY-----\n");
-  return missing;
+// Pastikan environment terisi (helper)
+export function assertEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
 }
 
+// Inisialisasi Firebase Admin sekali saja
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: assertEnv("FIREBASE_PROJECT_ID"),
+      clientEmail: assertEnv("FIREBASE_CLIENT_EMAIL"),
+      privateKey: assertEnv("FIREBASE_PRIVATE_KEY").replace(/\\n/g, "\n"),
+    }),
+  });
+  console.log("✅ Firebase Admin initialized");
+}
+
+// Instance Firestore
+const db = admin.firestore();
+
+// Export default & named untuk kompatibilitas ESM
+export { db };
 export function getDb() {
-  if (!getApps().length) {
-    const missing = assertEnv();
-    if (missing.length) throw new Error("Missing ENV: " + missing.join(", "));
-    console.log("🔥 Initializing Firebase Admin SDK...");
-    initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
-    console.log("✅ Firebase Admin initialized for project:", projectId);
-  }
-  return getFirestore();
+  return db;
 }
