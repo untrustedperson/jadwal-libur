@@ -49,7 +49,7 @@ export default function Dashboard() {
         alignItems: "center",
         padding: "16px",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "hidden", // ✅ cegah scroll horizontal di PC
       }}
     >
       {/* Header */}
@@ -97,7 +97,7 @@ export default function Dashboard() {
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            minWidth: 350,
+            minWidth: 360,
           }}
         >
           <thead>

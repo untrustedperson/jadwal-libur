@@ -27,7 +27,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const eventsCollection = collection(db, "events");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-<h2 style={{ margin: 0 }}>📅 Jadwal Hari Libur – Halo, {userName}</h2>
+
 
 
   // 🔒 Logout
@@ -174,7 +174,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           flexWrap: "wrap",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 20 }}>📅 Jadwal Hari Libur</h2>
+        <h2 style={{ margin: 0, fontSize: 20 }}>📅 Jadwal Hari Libur — Halo, {userName}</h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 13, opacity: 0.8 }}>

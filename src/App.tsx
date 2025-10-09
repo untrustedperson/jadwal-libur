@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./Login";
 import Register from "./Register";
@@ -7,63 +7,42 @@ import Dashboard from "./Dashboard";
 import { onSnapshot, doc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 
-interface PrivateRouteProps {
-  children: React.ReactElement;
-  allowedRoles: string[];
-}
-
-function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
+function PrivateRoute({ children, allowedRoles }: { children: React.ReactElement; allowedRoles: string[] }) {
   const role = localStorage.getItem("role");
-
   if (!role) return <Navigate to="/login" replace />;
   if (!allowedRoles.includes(role)) return <Navigate to="/calendar" replace />;
-
   return children;
 }
-
 export default function App() {
   const [role, setRole] = useState<string | null>(localStorage.getItem("role"));
 
-  // 🔁 Sinkronisasi role dengan localStorage
+  // 🔁 Listen for Firestore role changes
   useEffect(() => {
-    const handleStorageChange = () => {
-      setRole(localStorage.getItem("role"));
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+    const user = auth.currentUser;
+    if (!user) return;
 
-  useEffect(() => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) return;
-
-  const unsub = onSnapshot(doc(db, "roles", currentUser.uid), (snap) => {
-    if (snap.exists()) {
-      const newRole = snap.data().role;
-      const oldRole = localStorage.getItem("role");
-      if (newRole !== oldRole) {
-        localStorage.setItem("role", newRole);
-        setRole(newRole);
+    const unsub = onSnapshot(doc(db, "roles", user.uid), (snap) => {
+      if (snap.exists()) {
+        const newRole = snap.data().role;
+        if (newRole !== localStorage.getItem("role")) {
+          localStorage.setItem("role", newRole);
+          setRole(newRole);
+        }
       }
-    }
-  });
+    });
 
-  return () => unsub();
-}, []);
+    return () => unsub();
+  }, [auth.currentUser]);
 
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
-        {/* Calendar: hanya admin & dev bisa CRUD */}
         <Route
           path="/calendar"
           element={<Calendar canEdit={role === "admin" || role === "dev"} />}
         />
-
-        {/* Dashboard: hanya dev */}
         <Route
           path="/dashboard"
           element={
@@ -72,7 +51,6 @@ export default function App() {
             </PrivateRoute>
           }
         />
-
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
