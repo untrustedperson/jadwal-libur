@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
@@ -15,28 +15,33 @@ export default function Login() {
     setError("");
 
     try {
-      // 🔹 Login Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      // 🔹 Ambil role user dari Firestore
       const userDoc = await getDoc(doc(db, "roles", uid));
       const role = userDoc.exists() ? userDoc.data().role : "viewer";
 
-      // 🔹 Bersihkan localStorage dulu agar role lama tidak ikut
+      // simpan role & name dengan aman
       localStorage.clear();
       localStorage.setItem("role", role);
+      localStorage.setItem("name", userDoc.data()?.name || email.split("@")[0]);
 
-      if (role === "dev") {
-      navigate("/dashboard");
-    } else {
-      navigate("/calendar");
-    }
-    window.location.reload();
+      // pantau perubahan role real-time
+      onSnapshot(doc(db, "roles", uid), (docSnap) => {
+        if (docSnap.exists()) {
+          const newRole = docSnap.data().role;
+          const oldRole = localStorage.getItem("role");
+          if (newRole !== oldRole) {
+            localStorage.setItem("role", newRole);
+            window.location.reload();
+          }
+        }
+      });
 
-      // 🔹 Arahkan sesuai role
+      // arahkan halaman
       if (role === "dev") navigate("/dashboard");
       else navigate("/calendar");
+
     } catch (err: any) {
       console.error("Login error:", err);
       if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
@@ -47,9 +52,6 @@ export default function Login() {
         setError("Terjadi kesalahan saat login.");
       }
     }
-
-    
-
   }
 
   return (
@@ -100,7 +102,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-    overflowX: "hidden", // 🔒 cegah background kanan
+    overflowX: "hidden",
     overflowY: "auto",
     margin: 0,
     padding: "0 16px",
@@ -160,4 +162,3 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
   },
 };
-

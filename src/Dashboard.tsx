@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
-import { signOut } from "firebase/auth";
+import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { db, auth } from "./firebaseConfig";
+import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
 interface UserRole {
   id: string;
+  name: string;
   email: string;
   role: string;
 }
@@ -14,20 +15,21 @@ export default function Dashboard() {
   const [users, setUsers] = useState<UserRole[]>([]);
   const navigate = useNavigate();
 
+  // Real-time sync dengan Firestore
   useEffect(() => {
-    loadUsers();
+    const unsub = onSnapshot(collection(db, "roles"), (snapshot) => {
+      const data = snapshot.docs.map((d) => ({
+      ...d.data(),
+      id: d.id,
+      })) as UserRole[];
+      setUsers(data);
+    });
+    return () => unsub();
   }, []);
-
-  async function loadUsers() {
-    const snapshot = await getDocs(collection(db, "roles"));
-    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as UserRole[];
-    setUsers(data);
-  }
 
   async function handleRoleChange(uid: string, newRole: string) {
     const userRef = doc(db, "roles", uid);
     await updateDoc(userRef, { role: newRole });
-    await loadUsers();
   }
 
   async function handleLogout() {
@@ -36,160 +38,153 @@ export default function Dashboard() {
     navigate("/login");
   }
 
-  const getDisplayName = (email: string) => email.split("@")[0];
-
   return (
     <div
       style={{
         minHeight: "100vh",
-        width: "100%",
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+        background: "linear-gradient(135deg, #1d4ed8, #60a5fa)",
         display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "16px",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        padding: "40px 16px",
         boxSizing: "border-box",
-        overflowX: "hidden", // ✅ cegah scroll horizontal di PC
+        overflowX: "hidden",
       }}
     >
-      {/* Header */}
       <div
         style={{
           width: "100%",
-          maxWidth: 800,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          marginBottom: 20,
-          gap: 12,
-        }}
-      >
-        <h2 style={{ color: "white", margin: 0 }}>👑 Dev Dashboard</h2>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            border: "none",
-            background: "#ef4444",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* Table wrapper */}
-      <div
-        style={{
+          maxWidth: 900,
           background: "#fff",
           borderRadius: 12,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          width: "100%",
-          maxWidth: 800,
-          overflowX: "auto",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          padding: "24px",
+          boxSizing: "border-box",
         }}
       >
-        <table
+        {/* Header */}
+        <div
           style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            minWidth: 360,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+            flexWrap: "wrap",
           }}
         >
-          <thead>
-            <tr style={{ background: "#f1f5f9" }}>
-              <th style={styles.th}>Nama</th>
-              <th style={styles.th}>Role</th>
-              <th style={styles.th}>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} style={{ borderBottom: "1px solid #e5e7eb", textAlign: "center" }}>
-                <td style={styles.td}>{getDisplayName(user.email)}</td>
-                <td style={styles.td}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "6px 12px",
-                      borderRadius: 12,
-                      background:
-                        user.role === "dev"
-                          ? "#2563eb"
-                          : user.role === "admin"
-                          ? "#16a34a"
-                          : "#9ca3af",
-                      color: "#fff",
-                      fontWeight: 600,
-                      textTransform: "capitalize",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {user.role}
-                  </span>
-                </td>
-                <td style={styles.td}>
-                  {user.role !== "dev" && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-                      <button
-                        onClick={() => handleRoleChange(user.id, "admin")}
-                        style={styles.btnGreen}
-                      >
-                        Admin
-                      </button>
-                      <button
-                        onClick={() => handleRoleChange(user.id, "viewer")}
-                        style={styles.btnGray}
-                      >
-                        Viewer
-                      </button>
-                    </div>
-                  )}
-                </td>
+          <h2 style={{ margin: 0, color: "#1d4ed8" }}>👑 Dev Dashboard</h2>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "#ef4444",
+              color: "#fff",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Logout
+          </button>
+        </div>
+
+        {/* Table Container (scrollable on mobile) */}
+        <div
+          style={{
+            overflowX: "auto",
+            width: "100%",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              textAlign: "left",
+              minWidth: 500,
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#f3f4f6" }}>
+                <th style={thStyle}>Nama</th>
+                <th style={thStyle}>Email</th>
+                <th style={thStyle}>Role</th>
+                <th style={thStyle}>Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr
+                  key={user.id}
+                  style={{
+                    borderBottom: "1px solid #e5e7eb",
+                  }}
+                >
+                  <td style={tdStyle}>{user.name || "(Tidak ada nama)"}</td>
+                  <td style={tdStyle}>{user.email}</td>
+                  <td style={tdStyle}>{user.role}</td>
+                  <td style={tdStyle}>
+                    {user.role !== "dev" && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <button
+                          onClick={() => handleRoleChange(user.id, "admin")}
+                          style={btnPrimary}
+                        >
+                          Jadikan Admin
+                        </button>
+                        <button
+                          onClick={() => handleRoleChange(user.id, "viewer")}
+                          style={btnSecondary}
+                        >
+                          Jadikan Viewer
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  th: {
-    padding: "10px",
-    fontSize: "14px",
-    color: "#1f2937",
-    textAlign: "center",
-  },
-  td: {
-    padding: "10px",
-    fontSize: "14px",
-    color: "#374151",
-    wordBreak: "break-word",
-  },
-  btnGreen: {
-    background: "#16a34a",
-    border: "none",
-    color: "#fff",
-    borderRadius: 6,
-    padding: "6px 10px",
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: 600,
-  },
-  btnGray: {
-    background: "#9ca3af",
-    border: "none",
-    color: "#fff",
-    borderRadius: 6,
-    padding: "6px 10px",
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: 600,
-  },
+const thStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  color: "#1f2937",
+  fontWeight: 600,
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  color: "#374151",
+  fontSize: 14,
+};
+
+const btnPrimary: React.CSSProperties = {
+  background: "#2563eb",
+  color: "#fff",
+  border: "none",
+  borderRadius: 6,
+  padding: "4px 8px",
+  cursor: "pointer",
+  fontSize: 13,
+};
+
+const btnSecondary: React.CSSProperties = {
+  background: "#e5e7eb",
+  color: "#111827",
+  border: "none",
+  borderRadius: 6,
+  padding: "4px 8px",
+  cursor: "pointer",
+  fontSize: 13,
 };
