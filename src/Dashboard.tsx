@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import { collection, getDocs, updateDoc, doc, onSnapshot } from "firebase/firestore";
 import { db, auth } from "./firebaseConfig";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
 interface UserRole {
   id: string;
-  name: string;
   email: string;
   role: string;
 }
@@ -15,176 +14,198 @@ export default function Dashboard() {
   const [users, setUsers] = useState<UserRole[]>([]);
   const navigate = useNavigate();
 
-  // Real-time sync dengan Firestore
+  // === Logout ===
+  async function handleLogout() {
+    try {
+      await signOut(auth);
+      localStorage.clear();
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  }
+
+  // === Load all users ===
+  async function loadUsers() {
+    const snapshot = await getDocs(collection(db, "roles"));
+    const data = snapshot.docs.map((d) => ({
+      ...(d.data() as Omit<UserRole, "id">),
+      id: d.id,
+    })) as UserRole[];
+    setUsers(data);
+  }
+
   useEffect(() => {
+    loadUsers();
+
+    // === Real-time listener untuk perubahan role (langsung update dashboard)
     const unsub = onSnapshot(collection(db, "roles"), (snapshot) => {
       const data = snapshot.docs.map((d) => ({
-      ...d.data(),
-      id: d.id,
+        ...(d.data() as Omit<UserRole, "id">),
+        id: d.id,
       })) as UserRole[];
       setUsers(data);
     });
+
     return () => unsub();
   }, []);
 
+  // === Update role ===
   async function handleRoleChange(uid: string, newRole: string) {
-    const userRef = doc(db, "roles", uid);
-    await updateDoc(userRef, { role: newRole });
-  }
+    try {
+      const userRef = doc(db, "roles", uid);
+      await updateDoc(userRef, { role: newRole });
 
-  async function handleLogout() {
-    await signOut(auth);
-    localStorage.removeItem("role");
-    navigate("/login");
+      // 🔄 Cek apakah user yang diubah adalah user yang sedang login
+      const currentUser = auth.currentUser;
+      if (currentUser && currentUser.uid === uid) {
+        localStorage.setItem("role", newRole);
+        window.location.reload(); // Paksa reload untuk update hak akses
+      }
+    } catch (err) {
+      console.error("Gagal mengubah role:", err);
+    }
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #1d4ed8, #60a5fa)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        padding: "40px 16px",
-        boxSizing: "border-box",
-        overflowX: "hidden",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 900,
-          background: "#fff",
-          borderRadius: 12,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-          padding: "24px",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 20,
-            flexWrap: "wrap",
-          }}
-        >
-          <h2 style={{ margin: 0, color: "#1d4ed8" }}>👑 Dev Dashboard</h2>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: "8px 14px",
-              borderRadius: 8,
-              border: "none",
-              background: "#ef4444",
-              color: "#fff",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            Logout
-          </button>
-        </div>
+    <div style={styles.page}>
+      {/* Header */}
+      <div style={styles.header}>
+        <h2 style={styles.title}>👑 Dev Dashboard – Manajemen Role</h2>
+        <button onClick={handleLogout} style={styles.logoutBtn}>
+          Logout
+        </button>
+      </div>
 
-        {/* Table Container (scrollable on mobile) */}
-        <div
-          style={{
-            overflowX: "auto",
-            width: "100%",
-          }}
-        >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              textAlign: "left",
-              minWidth: 500,
-            }}
-          >
-            <thead>
-              <tr style={{ background: "#f3f4f6" }}>
-                <th style={thStyle}>Nama</th>
-                <th style={thStyle}>Email</th>
-                <th style={thStyle}>Role</th>
-                <th style={thStyle}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr
-                  key={user.id}
-                  style={{
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  <td style={tdStyle}>{user.name || "(Tidak ada nama)"}</td>
-                  <td style={tdStyle}>{user.email}</td>
-                  <td style={tdStyle}>{user.role}</td>
-                  <td style={tdStyle}>
-                    {user.role !== "dev" && (
-                      <div
+      {/* Table container */}
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr style={styles.tableHeader}>
+              <th style={styles.th}>Email</th>
+              <th style={styles.th}>Role</th>
+              <th style={styles.th}>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id} style={styles.tr}>
+                <td style={styles.td}>{user.email}</td>
+                <td style={styles.td}>
+                  <span style={{ textTransform: "capitalize" }}>{user.role}</span>
+                </td>
+                <td style={styles.td}>
+                  {user.role !== "dev" && (
+                    <div style={styles.actionButtons}>
+                      <button
+                        onClick={() => handleRoleChange(user.id, "admin")}
                         style={{
-                          display: "flex",
-                          gap: 6,
-                          flexWrap: "wrap",
+                          ...styles.actionBtn,
+                          background: user.role === "admin" ? "#16a34a" : "#60a5fa",
                         }}
                       >
-                        <button
-                          onClick={() => handleRoleChange(user.id, "admin")}
-                          style={btnPrimary}
-                        >
-                          Jadikan Admin
-                        </button>
-                        <button
-                          onClick={() => handleRoleChange(user.id, "viewer")}
-                          style={btnSecondary}
-                        >
-                          Jadikan Viewer
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        Jadikan Admin
+                      </button>
+                      <button
+                        onClick={() => handleRoleChange(user.id, "viewer")}
+                        style={{
+                          ...styles.actionBtn,
+                          background: user.role === "viewer" ? "#f87171" : "#facc15",
+                        }}
+                      >
+                        Jadikan Viewer
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-const thStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  color: "#1f2937",
-  fontWeight: 600,
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  color: "#374151",
-  fontSize: 14,
-};
-
-const btnPrimary: React.CSSProperties = {
-  background: "#2563eb",
-  color: "#fff",
-  border: "none",
-  borderRadius: 6,
-  padding: "4px 8px",
-  cursor: "pointer",
-  fontSize: 13,
-};
-
-const btnSecondary: React.CSSProperties = {
-  background: "#e5e7eb",
-  color: "#111827",
-  border: "none",
-  borderRadius: 6,
-  padding: "4px 8px",
-  cursor: "pointer",
-  fontSize: 13,
+// === Styles ===
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    width: "100%",
+    background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "20px 10px",
+    boxSizing: "border-box",
+    overflowX: "hidden", // 🟢 fix background kanan
+  },
+  header: {
+    width: "100%",
+    maxWidth: 900,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 20,
+  },
+  title: {
+    color: "#fff",
+    fontSize: "1.5rem",
+    margin: 0,
+  },
+  logoutBtn: {
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    padding: "8px 16px",
+    cursor: "pointer",
+    fontWeight: 600,
+  },
+  tableContainer: {
+    background: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    width: "100%",
+    maxWidth: 900,
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+    overflowX: "auto", // ✅ agar tetap responsif di mobile
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+  },
+  tableHeader: {
+    background: "#f3f4f6",
+  },
+  th: {
+    padding: "12px 8px",
+    textAlign: "left",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  tr: {
+    borderBottom: "1px solid #e5e7eb",
+  },
+  td: {
+    padding: "10px 8px",
+    fontSize: 14,
+    wordBreak: "break-word",
+  },
+  actionButtons: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  actionBtn: {
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    padding: "6px 10px",
+    fontSize: 13,
+    cursor: "pointer",
+    fontWeight: 500,
+    transition: "0.2s",
+  },
 };
