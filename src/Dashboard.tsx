@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { collection, getDocs, updateDoc, doc, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  onSnapshot,
+} from "firebase/firestore";
 import { db, auth } from "./firebaseConfig";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -29,22 +35,32 @@ export default function Dashboard() {
   async function loadUsers() {
     const snapshot = await getDocs(collection(db, "roles"));
     const data = snapshot.docs.map((d) => ({
-      ...(d.data() as Omit<UserRole, "id">),
       id: d.id,
+      ...(d.data() as Omit<UserRole, "id">),
     })) as UserRole[];
     setUsers(data);
   }
 
+  // === Listener untuk perubahan role secara realtime
   useEffect(() => {
     loadUsers();
 
-    // === Real-time listener untuk perubahan role (langsung update dashboard)
     const unsub = onSnapshot(collection(db, "roles"), (snapshot) => {
       const data = snapshot.docs.map((d) => ({
-        ...(d.data() as Omit<UserRole, "id">),
         id: d.id,
+        ...(d.data() as Omit<UserRole, "id">),
       })) as UserRole[];
       setUsers(data);
+
+      // jika user yang login diubah rolenya -> reload otomatis
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const user = data.find((u) => u.id === currentUser.uid);
+        if (user && localStorage.getItem("role") !== user.role) {
+          localStorage.setItem("role", user.role);
+          window.location.reload();
+        }
+      }
     });
 
     return () => unsub();
@@ -55,13 +71,6 @@ export default function Dashboard() {
     try {
       const userRef = doc(db, "roles", uid);
       await updateDoc(userRef, { role: newRole });
-
-      // 🔄 Cek apakah user yang diubah adalah user yang sedang login
-      const currentUser = auth.currentUser;
-      if (currentUser && currentUser.uid === uid) {
-        localStorage.setItem("role", newRole);
-        window.location.reload(); // Paksa reload untuk update hak akses
-      }
     } catch (err) {
       console.error("Gagal mengubah role:", err);
     }
@@ -101,7 +110,8 @@ export default function Dashboard() {
                         onClick={() => handleRoleChange(user.id, "admin")}
                         style={{
                           ...styles.actionBtn,
-                          background: user.role === "admin" ? "#16a34a" : "#60a5fa",
+                          background:
+                            user.role === "admin" ? "#1d4ed8" : "#2563eb",
                         }}
                       >
                         Jadikan Admin
@@ -110,7 +120,8 @@ export default function Dashboard() {
                         onClick={() => handleRoleChange(user.id, "viewer")}
                         style={{
                           ...styles.actionBtn,
-                          background: user.role === "viewer" ? "#f87171" : "#facc15",
+                          background:
+                            user.role === "viewer" ? "#e11d48" : "#f43f5e",
                         }}
                       >
                         Jadikan Viewer
@@ -131,27 +142,27 @@ export default function Dashboard() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    width: "100%",
+    width: "100vw",
     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    padding: "20px 10px",
+    padding: "30px 16px",
     boxSizing: "border-box",
     overflowX: "hidden", // 🟢 fix background kanan
   },
   header: {
     width: "100%",
-    maxWidth: 900,
+    maxWidth: 1000,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
     marginBottom: 20,
+    flexWrap: "wrap",
   },
   title: {
     color: "#fff",
-    fontSize: "1.5rem",
+    fontSize: "1.8rem",
     margin: 0,
   },
   logoutBtn: {
@@ -162,15 +173,16 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 16px",
     cursor: "pointer",
     fontWeight: 600,
+    transition: "0.2s",
   },
   tableContainer: {
     background: "#fff",
     borderRadius: 12,
-    padding: 16,
+    padding: "20px",
     width: "100%",
-    maxWidth: 900,
-    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-    overflowX: "auto", // ✅ agar tetap responsif di mobile
+    maxWidth: 1000,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+    overflowX: "auto",
   },
   table: {
     width: "100%",
@@ -180,9 +192,10 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#f3f4f6",
   },
   th: {
-    padding: "12px 8px",
+    padding: "12px 10px",
     textAlign: "left",
     fontWeight: "bold",
+    color: "#1e3a8a",
     fontSize: 14,
   },
   tr: {
@@ -191,12 +204,13 @@ const styles: Record<string, React.CSSProperties> = {
   td: {
     padding: "10px 8px",
     fontSize: 14,
-    wordBreak: "break-word",
+    color: "#111827",
+    verticalAlign: "middle",
   },
   actionButtons: {
     display: "flex",
-    gap: 8,
     flexWrap: "wrap",
+    gap: 8,
   },
   actionBtn: {
     color: "#fff",
@@ -206,6 +220,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     cursor: "pointer",
     fontWeight: 500,
-    transition: "0.2s",
   },
 };
