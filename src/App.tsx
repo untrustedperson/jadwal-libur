@@ -13,27 +13,16 @@ interface PrivateRouteProps {
 function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
   const role = localStorage.getItem("role");
 
-  if (!role) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!allowedRoles.includes(role)) {
-    return <Navigate to="/calendar" replace />;
-  }
+  if (!role) return <Navigate to="/login" replace />;
+  if (!allowedRoles.includes(role)) return <Navigate to="/calendar" replace />;
 
   return children;
 }
 
 export default function App() {
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(localStorage.getItem("role"));
 
-  // ambil role saat awal render
-  useEffect(() => {
-    const storedRole = localStorage.getItem("role");
-    setRole(storedRole);
-  }, []);
-
-  // update role bila localStorage berubah
+  // 🔁 Sinkronisasi role dengan localStorage
   useEffect(() => {
     const handleStorageChange = () => {
       setRole(localStorage.getItem("role"));
@@ -48,11 +37,13 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* Calendar: hanya admin & dev bisa CRUD */}
         <Route
           path="/calendar"
           element={<Calendar canEdit={role === "admin" || role === "dev"} />}
         />
 
+        {/* Dashboard: hanya dev */}
         <Route
           path="/dashboard"
           element={
@@ -62,7 +53,6 @@ export default function App() {
           }
         />
 
-        {/* Jika tidak ada route cocok, arahkan ke login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
