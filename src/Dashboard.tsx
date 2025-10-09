@@ -36,23 +36,20 @@ export default function Dashboard() {
     navigate("/login");
   }
 
-  // Fungsi ambil nama depan user (tanpa domain email)
-  function getDisplayName(email: string) {
-    return email.split("@")[0]; // ambil sebelum '@'
-  }
+  const getDisplayName = (email: string) => email.split("@")[0];
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        width: "100vw",
+        width: "100%",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "20px",
+        padding: "16px",
         boxSizing: "border-box",
-        overflowX: "hidden", // 🔒 hilangkan sisa background kanan
+        overflowX: "hidden",
       }}
     >
       {/* Header */}
@@ -63,10 +60,12 @@ export default function Dashboard() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
           marginBottom: 20,
+          gap: 12,
         }}
       >
-        <h2 style={{ color: "white", margin: 0 }}>👑 Dev Dashboard – Manajemen Role</h2>
+        <h2 style={{ color: "white", margin: 0 }}>👑 Dev Dashboard</h2>
         <button
           onClick={handleLogout}
           style={{
@@ -83,7 +82,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Tabel User */}
+      {/* Table wrapper */}
       <div
         style={{
           background: "#fff",
@@ -91,37 +90,32 @@ export default function Dashboard() {
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
           width: "100%",
           maxWidth: 800,
-          overflowX: "auto", // agar tabel bisa di-scroll di mobile
+          overflowX: "auto",
         }}
       >
         <table
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            minWidth: 360,
+            minWidth: 350,
           }}
         >
           <thead>
             <tr style={{ background: "#f1f5f9" }}>
-              <th style={styles.th}>Nama User</th>
+              <th style={styles.th}>Nama</th>
               <th style={styles.th}>Role</th>
               <th style={styles.th}>Aksi</th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr
-                key={user.id}
-                style={{
-                  borderBottom: "1px solid #e5e7eb",
-                  textAlign: "center",
-                }}
-              >
+              <tr key={user.id} style={{ borderBottom: "1px solid #e5e7eb", textAlign: "center" }}>
                 <td style={styles.td}>{getDisplayName(user.email)}</td>
                 <td style={styles.td}>
                   <span
                     style={{
-                      padding: "4px 10px",
+                      display: "inline-block",
+                      padding: "6px 12px",
                       borderRadius: 12,
                       background:
                         user.role === "dev"
@@ -132,6 +126,7 @@ export default function Dashboard() {
                       color: "#fff",
                       fontWeight: 600,
                       textTransform: "capitalize",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {user.role}
@@ -139,18 +134,18 @@ export default function Dashboard() {
                 </td>
                 <td style={styles.td}>
                   {user.role !== "dev" && (
-                    <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
                       <button
                         onClick={() => handleRoleChange(user.id, "admin")}
                         style={styles.btnGreen}
                       >
-                        Jadikan Admin
+                        Admin
                       </button>
                       <button
                         onClick={() => handleRoleChange(user.id, "viewer")}
                         style={styles.btnGray}
                       >
-                        Jadikan Viewer
+                        Viewer
                       </button>
                     </div>
                   )}

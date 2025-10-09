@@ -4,6 +4,8 @@ import Login from "./Login";
 import Register from "./Register";
 import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
+import { onSnapshot, doc } from "firebase/firestore";
+import { auth, db } from "./firebaseConfig";
 
 interface PrivateRouteProps {
   children: React.ReactElement;
@@ -30,6 +32,24 @@ export default function App() {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
+
+  useEffect(() => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+
+  const unsub = onSnapshot(doc(db, "roles", currentUser.uid), (snap) => {
+    if (snap.exists()) {
+      const newRole = snap.data().role;
+      const oldRole = localStorage.getItem("role");
+      if (newRole !== oldRole) {
+        localStorage.setItem("role", newRole);
+        setRole(newRole);
+      }
+    }
+  });
+
+  return () => unsub();
+}, []);
 
   return (
     <Router>

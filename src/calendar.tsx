@@ -25,6 +25,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
+  const userName = (auth.currentUser?.email || "").split("@")[0];
+
+<h2 style={{ margin: 0 }}>📅 Jadwal Hari Libur – Halo, {userName}</h2>
+
 
   // 🔒 Logout
   async function handleLogout() {
