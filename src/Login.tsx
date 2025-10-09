@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from "react"; // ⬅️ hapus useEffect karena tidak digunakan
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
@@ -25,22 +25,23 @@ export default function Login() {
       const userDoc = await getDoc(doc(db, "roles", uid));
       const role = userDoc.exists() ? userDoc.data().role : "viewer";
 
-      // 🔹 Simpan role dan dengarkan perubahan realtime
+      // 🔹 Simpan role
       localStorage.setItem("role", role);
 
-      // 🔁 Aktifkan listener untuk perubahan role otomatis
+      // 🔁 Dengarkan perubahan role realtime
       onSnapshot(doc(db, "roles", uid), (snap) => {
         if (snap.exists()) {
           const newRole = snap.data().role;
           const oldRole = localStorage.getItem("role");
           if (newRole !== oldRole) {
+            console.log("🔄 Role berubah:", oldRole, "→", newRole);
             localStorage.setItem("role", newRole);
-            window.location.reload();
+            navigate(0); // ✅ re-render tanpa reload penuh
           }
         }
       });
 
-      // 🔹 Tunggu sebentar biar router tahu role sudah siap
+      // 🔹 Arahkan sesuai role
       setTimeout(() => {
         if (role === "dev") navigate("/dashboard", { replace: true });
         else navigate("/calendar", { replace: true });
@@ -107,7 +108,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-    overflowX: "hidden",
+    overflow: "hidden",
     padding: "0 16px",
     boxSizing: "border-box",
   },
@@ -141,3 +142,4 @@ const styles: Record<string, React.CSSProperties> = {
   linkText: { marginTop: 16, fontSize: 14 },
   link: { color: "#2563eb", fontWeight: 600, textDecoration: "none" },
 };
+

@@ -7,12 +7,13 @@ import Dashboard from "./Dashboard";
 import { auth, db } from "./firebaseConfig";
 import { onSnapshot, doc } from "firebase/firestore";
 
-interface PrivateRouteProps {
+function PrivateRoute({
+  children,
+  allowedRoles,
+}: {
   children: React.ReactElement;
   allowedRoles: string[];
-}
-
-function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
+}) {
   const role = localStorage.getItem("role");
   if (!role) return <Navigate to="/login" replace />;
   if (!allowedRoles.includes(role)) return <Navigate to="/calendar" replace />;
@@ -23,14 +24,6 @@ export default function App() {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Ambil role dari localStorage saat pertama kali
-  useEffect(() => {
-    const storedRole = localStorage.getItem("role");
-    if (storedRole) setRole(storedRole);
-    setLoading(false);
-  }, []);
-
-  // Pantau perubahan role user login secara real-time
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (!user) {
@@ -45,13 +38,14 @@ export default function App() {
           const newRole = docSnap.data().role;
           const oldRole = localStorage.getItem("role");
 
-          // Hindari reload berulang (cek dulu apakah role berubah)
           if (newRole !== oldRole) {
             console.log("🔄 Role berubah:", oldRole, "→", newRole);
             localStorage.setItem("role", newRole);
             setRole(newRole);
-            // ✅ Reload hanya sekali, agar user tidak harus login 2x
-            window.location.replace(window.location.pathname);
+          } else if (!oldRole) {
+            // Jika localStorage belum sempat diisi oleh Login
+            localStorage.setItem("role", newRole);
+            setRole(newRole);
           }
         }
         setLoading(false);
