@@ -7,13 +7,12 @@ import Dashboard from "./Dashboard";
 import { auth, db } from "./firebaseConfig";
 import { onSnapshot, doc } from "firebase/firestore";
 
-function PrivateRoute({
-  children,
-  allowedRoles,
-}: {
+interface PrivateRouteProps {
   children: React.ReactElement;
   allowedRoles: string[];
-}) {
+}
+
+function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
   const role = localStorage.getItem("role");
   if (!role) return <Navigate to="/login" replace />;
   if (!allowedRoles.includes(role)) return <Navigate to="/calendar" replace />;
@@ -22,16 +21,23 @@ function PrivateRoute({
 
 export default function App() {
   const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Ambil role dari localStorage saat pertama kali
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
-    setRole(storedRole);
+    if (storedRole) setRole(storedRole);
+    setLoading(false);
   }, []);
 
-  // 🔁 Pantau perubahan role milik user login secara real-time
+  // Pantau perubahan role user login secara real-time
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-      if (!user) return;
+      if (!user) {
+        setRole(null);
+        setLoading(false);
+        return;
+      }
 
       const roleRef = doc(db, "roles", user.uid);
       const unsubRole = onSnapshot(roleRef, (docSnap) => {
@@ -39,13 +45,16 @@ export default function App() {
           const newRole = docSnap.data().role;
           const oldRole = localStorage.getItem("role");
 
+          // Hindari reload berulang (cek dulu apakah role berubah)
           if (newRole !== oldRole) {
             console.log("🔄 Role berubah:", oldRole, "→", newRole);
             localStorage.setItem("role", newRole);
             setRole(newRole);
-            window.location.reload(); // 🔁 reload otomatis agar UI menyesuaikan
+            // ✅ Reload hanya sekali, agar user tidak harus login 2x
+            window.location.replace(window.location.pathname);
           }
         }
+        setLoading(false);
       });
 
       return () => unsubRole();
@@ -53,6 +62,23 @@ export default function App() {
 
     return () => unsubscribeAuth();
   }, []);
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: 18,
+          color: "#2563eb",
+        }}
+      >
+        ⏳ Memuat aplikasi...
+      </div>
+    );
+  }
 
   return (
     <Router>

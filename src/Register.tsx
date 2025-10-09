@@ -15,23 +15,21 @@ export default function Register() {
     setError("");
 
     try {
-      // 🔹 Daftarkan akun ke Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      // 🔹 Simpan role default "viewer" di Firestore
-      await setDoc(doc(db, "roles", uid), { email, role: "viewer" });
+      // 🔹 Buat dokumen role baru di Firestore
+      await setDoc(doc(db, "roles", uid), {
+        email,
+        role: "viewer", // default role
+      });
 
-      // 🔹 Reset dan simpan role baru ke localStorage
-      localStorage.clear();
+      // 🔹 Simpan role langsung agar App.tsx tahu tanpa reload
       localStorage.setItem("role", "viewer");
 
-      
-
-      // 🔹 Arahkan ke halaman kalender
+      // 🔹 Arahkan user ke kalender
       navigate("/calendar");
     } catch (err: any) {
-      console.error("Register error:", err);
       if (err.code === "auth/weak-password") {
         setError("Password minimal 6 karakter!");
       } else if (err.code === "auth/email-already-in-use") {
@@ -84,14 +82,13 @@ export default function Register() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    minHeight: "100vh",
+    height: "100vh",
     width: "100vw",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     background: "linear-gradient(135deg, #16a34a, #4ade80)",
-    overflowX: "hidden", // 🔒 mencegah background sisi kanan
-    overflowY: "auto",
+    overflow: "hidden",
     margin: 0,
     padding: "0 16px",
     boxSizing: "border-box",
@@ -122,7 +119,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     outline: "none",
     width: "100%",
-    boxSizing: "border-box",
   },
   button: {
     padding: "10px",
@@ -132,8 +128,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#fff",
     fontWeight: 600,
     cursor: "pointer",
-    transition: "0.2s",
-    width: "100%",
+    transition: "background 0.2s",
   },
   error: {
     color: "red",

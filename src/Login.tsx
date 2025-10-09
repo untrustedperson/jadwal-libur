@@ -8,28 +8,30 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
+      // 🔹 Login Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
+      // 🔹 Ambil role user dari Firestore
       const userDoc = await getDoc(doc(db, "roles", uid));
       const role = userDoc.exists() ? userDoc.data().role : "viewer";
 
-      // simpan role & name dengan aman
-      localStorage.clear();
+      // 🔹 Simpan role dan dengarkan perubahan realtime
       localStorage.setItem("role", role);
-      localStorage.setItem("name", userDoc.data()?.name || email.split("@")[0]);
 
-      // pantau perubahan role real-time
-      onSnapshot(doc(db, "roles", uid), (docSnap) => {
-        if (docSnap.exists()) {
-          const newRole = docSnap.data().role;
+      // 🔁 Aktifkan listener untuk perubahan role otomatis
+      onSnapshot(doc(db, "roles", uid), (snap) => {
+        if (snap.exists()) {
+          const newRole = snap.data().role;
           const oldRole = localStorage.getItem("role");
           if (newRole !== oldRole) {
             localStorage.setItem("role", newRole);
@@ -38,10 +40,11 @@ export default function Login() {
         }
       });
 
-      // arahkan halaman
-      if (role === "dev") navigate("/dashboard");
-      else navigate("/calendar");
-
+      // 🔹 Tunggu sebentar biar router tahu role sudah siap
+      setTimeout(() => {
+        if (role === "dev") navigate("/dashboard", { replace: true });
+        else navigate("/calendar", { replace: true });
+      }, 300);
     } catch (err: any) {
       console.error("Login error:", err);
       if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
@@ -51,6 +54,8 @@ export default function Login() {
       } else {
         setError("Terjadi kesalahan saat login.");
       }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -76,8 +81,8 @@ export default function Login() {
             required
             style={styles.input}
           />
-          <button type="submit" style={styles.button}>
-            Masuk
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? "Memproses..." : "Masuk"}
           </button>
         </form>
 
@@ -103,8 +108,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
     overflowX: "hidden",
-    overflowY: "auto",
-    margin: 0,
     padding: "0 16px",
     boxSizing: "border-box",
   },
@@ -116,25 +119,14 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     maxWidth: 380,
     textAlign: "center",
-    boxSizing: "border-box",
   },
-  title: {
-    marginBottom: 24,
-    color: "#1e3a8a",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
+  title: { marginBottom: 24, color: "#1e3a8a" },
+  form: { display: "flex", flexDirection: "column", gap: 16 },
   input: {
     padding: "10px 14px",
     border: "1px solid #d1d5db",
     borderRadius: 8,
     fontSize: 14,
-    outline: "none",
-    width: "100%",
-    boxSizing: "border-box",
   },
   button: {
     padding: "10px",
@@ -144,21 +136,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#fff",
     fontWeight: 600,
     cursor: "pointer",
-    transition: "background 0.2s",
-    width: "100%",
   },
-  error: {
-    color: "red",
-    fontSize: 14,
-    marginTop: 8,
-  },
-  linkText: {
-    marginTop: 16,
-    fontSize: 14,
-  },
-  link: {
-    color: "#2563eb",
-    fontWeight: 600,
-    textDecoration: "none",
-  },
+  error: { color: "red", fontSize: 14, marginTop: 8 },
+  linkText: { marginTop: 16, fontSize: 14 },
+  link: { color: "#2563eb", fontWeight: 600, textDecoration: "none" },
 };
