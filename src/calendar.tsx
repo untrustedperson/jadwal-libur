@@ -8,10 +8,10 @@ import interactionPlugin from "@fullcalendar/interaction";
 import {
   collection,
   addDoc,
-  getDocs,
   deleteDoc,
   doc,
   updateDoc,
+  onSnapshot,
 } from "firebase/firestore";
 
 interface CalendarEvent {
@@ -26,39 +26,35 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
 
+  // 🔒 Logout
   async function handleLogout() {
     try {
       await signOut(auth);
       localStorage.removeItem("role");
       navigate("/login");
     } catch (e) {
-      console.error("logout error:", e);
+      console.error("Logout error:", e);
     }
   }
 
-  // 🔄 load event dari Firestore
+  // 🔄 Real-time update dari Firestore
   useEffect(() => {
-    loadEvents();
-  }, []);
-
-  async function loadEvents() {
-    try {
-      const snap = await getDocs(eventsCollection);
-      const data = snap.docs.map((d) => ({
+    const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({
         id: d.id,
         ...(d.data() as Omit<CalendarEvent, "id">),
       }));
       setEvents(data);
-    } catch (err) {
-      console.error("Gagal memuat event:", err);
-    }
-  }
+    });
+
+    // Bersihkan listener saat komponen di-unmount
+    return () => unsubscribe();
+  }, []);
 
   // ➕ CREATE
   async function handleDateClick(info: any) {
     if (!canEdit) return;
 
-    // Gunakan prompt yang kompatibel dengan mobile
     const title = window.prompt("Masukkan keterangan hari libur:");
     if (!title || title.trim() === "") return;
 
@@ -68,7 +64,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         start: info.dateStr,
         end: info.dateStr,
       });
-      await loadEvents();
     } catch (err) {
       console.error("Gagal menambah event:", err);
     }
@@ -87,7 +82,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     try {
       const ref = doc(db, "events", info.event.id);
       await updateDoc(ref, { title: newTitle });
-      await loadEvents();
     } catch (err) {
       console.error("Gagal mengupdate event:", err);
     }
@@ -98,13 +92,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     if (!canEdit) return;
     try {
       await deleteDoc(doc(db, "events", eventId));
-      await loadEvents();
     } catch (err) {
       console.error("Gagal menghapus event:", err);
     }
   }
 
-  // 🗓️ Event Content (delete btn fix for mobile)
+  // 🗓️ Event Content
   function renderEventContent(arg: any) {
     const onDelete = async (
       e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>
@@ -137,11 +130,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         >
           {arg.event.title}
         </span>
-
         {canEdit && (
           <button
             onClick={onDelete as any}
-            onTouchStart={onDelete as any} // 🟢 tambahkan ini agar bisa di-tap di mobile
+            onTouchStart={onDelete as any}
             style={{
               background: "transparent",
               border: "none",
@@ -158,7 +150,16 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
+    <div
+      style={{
+        padding: "20px",
+        width: "100vw",
+        maxWidth: "100%",
+        overflowX: "hidden", // ✅ Hilangkan sisa background kanan
+        margin: "0 auto",
+        boxSizing: "border-box",
+      }}
+    >
       {/* Header bar */}
       <div
         style={{
@@ -210,3 +211,4 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     </div>
   );
 }
+
