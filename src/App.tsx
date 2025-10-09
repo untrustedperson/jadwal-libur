@@ -4,35 +4,55 @@ import Login from "./Login";
 import Register from "./Register";
 import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
-import { onSnapshot, doc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
+import { onSnapshot, doc } from "firebase/firestore";
 
-function PrivateRoute({ children, allowedRoles }: { children: React.ReactElement; allowedRoles: string[] }) {
+function PrivateRoute({
+  children,
+  allowedRoles,
+}: {
+  children: React.ReactElement;
+  allowedRoles: string[];
+}) {
   const role = localStorage.getItem("role");
   if (!role) return <Navigate to="/login" replace />;
   if (!allowedRoles.includes(role)) return <Navigate to="/calendar" replace />;
   return children;
 }
+
 export default function App() {
-  const [role, setRole] = useState<string | null>(localStorage.getItem("role"));
+  const [role, setRole] = useState<string | null>(null);
 
-  // 🔁 Listen for Firestore role changes
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const storedRole = localStorage.getItem("role");
+    setRole(storedRole);
+  }, []);
 
-    const unsub = onSnapshot(doc(db, "roles", user.uid), (snap) => {
-      if (snap.exists()) {
-        const newRole = snap.data().role;
-        if (newRole !== localStorage.getItem("role")) {
-          localStorage.setItem("role", newRole);
-          setRole(newRole);
+  // 🔁 Pantau perubahan role milik user login secara real-time
+  useEffect(() => {
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (!user) return;
+
+      const roleRef = doc(db, "roles", user.uid);
+      const unsubRole = onSnapshot(roleRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const newRole = docSnap.data().role;
+          const oldRole = localStorage.getItem("role");
+
+          if (newRole !== oldRole) {
+            console.log("🔄 Role berubah:", oldRole, "→", newRole);
+            localStorage.setItem("role", newRole);
+            setRole(newRole);
+            window.location.reload(); // 🔁 reload otomatis agar UI menyesuaikan
+          }
         }
-      }
+      });
+
+      return () => unsubRole();
     });
 
-    return () => unsub();
-  }, [auth.currentUser]);
+    return () => unsubscribeAuth();
+  }, []);
 
   return (
     <Router>
