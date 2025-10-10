@@ -41,6 +41,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
+  //@ts-ignore
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
   // 🔄 Realtime events
@@ -333,94 +334,158 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         )}
       </div>
 
-      {/* Modal Tambah Jadwal */}
-      {showModal && (
-        <div
+      {/* Modal Tambah Libur */}
+{showModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1000,
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 12,
+        padding: 24,
+        width: "90%",
+        maxWidth: 400,
+      }}
+    >
+      <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
+        Tambah Hari Libur
+      </h3>
+
+      <label>Pilih Pegawai:</label>
+      <Select
+        options={employees}
+        onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
+        placeholder="Pilih nama pegawai..."
+        isSearchable
+        styles={{
+          control: (base) => ({
+            ...base,
+            backgroundColor: "#f9fafb",
+            borderColor: "#2563eb",
+            borderRadius: 8,
+            color: "#111827",
+          }),
+          singleValue: (base) => ({
+            ...base,
+            color: "#111827",
+            fontWeight: 600,
+          }),
+          placeholder: (base) => ({
+            ...base,
+            color: "#4b5563",
+          }),
+          menu: (base) => ({
+            ...base,
+            backgroundColor: "#f3f4f6",
+            color: "#111827",
+          }),
+          option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isFocused ? "#2563eb" : "#f3f4f6",
+            color: state.isFocused ? "#fff" : "#111827",
+            cursor: "pointer",
+          }),
+        }}
+      />
+
+      <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
+      <Select
+        isMulti
+        options={[
+          { value: "Sakit", label: "Sakit" },
+          { value: "Cuti Tahunan", label: "Cuti Tahunan" },
+          { value: "Cuti Penting", label: "Cuti Penting" },
+          { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
+        ]}
+        onChange={(opts) =>
+          setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
+        }
+        placeholder="Pilih jenis libur..."
+        styles={{
+          control: (base) => ({
+            ...base,
+            backgroundColor: "#f9fafb",
+            borderColor: "#2563eb",
+            borderRadius: 8,
+            color: "#111827",
+          }),
+          multiValue: (base) => ({
+            ...base,
+            backgroundColor: "#e0e7ff",
+          }),
+          multiValueLabel: (base) => ({
+            ...base,
+            color: "#111827",
+            fontWeight: 600,
+          }),
+          placeholder: (base) => ({
+            ...base,
+            color: "#4b5563",
+          }),
+          menu: (base) => ({
+            ...base,
+            backgroundColor: "#f3f4f6",
+            color: "#111827",
+          }),
+          option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isFocused ? "#2563eb" : "#f3f4f6",
+            color: state.isFocused ? "#fff" : "#111827",
+          }),
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginTop: 20,
+          gap: 8,
+        }}
+      >
+        <button
+          onClick={saveNewLeave}
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 999,
+            background: "#2563eb",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
           }}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 16,
-              padding: 24,
-              width: "90%",
-              maxWidth: 420,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-            }}
-          >
-            <h3 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: 16 }}>
-              Tambah Hari Libur
-            </h3>
+          Simpan
+        </button>
+        <button
+          onClick={() => setShowModal(false)}
+          style={{
+            background: "#9ca3af",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
+          }}
+        >
+          Batal
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
-            <label style={{ fontWeight: 600 }}>Pilih Pegawai</label>
-            <Select
-              options={employees}
-              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-              placeholder="Cari nama pegawai..."
-              isSearchable
-            />
-
-            <label style={{ fontWeight: 600, marginTop: 12 }}>Jenis Libur</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {leaveTypes.map((t) => (
-                <label key={t}>
-                  <input
-                    type="checkbox"
-                    checked={selectedLeaveTypes.includes(t)}
-                    onChange={(e) => {
-                      if (e.target.checked)
-                        setSelectedLeaveTypes([...selectedLeaveTypes, t]);
-                      else
-                        setSelectedLeaveTypes(selectedLeaveTypes.filter((x) => x !== t));
-                    }}
-                  />{" "}
-                  {t}
-                </label>
-              ))}
-            </div>
-
-            <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 8 }}>
-              <button
-                onClick={saveNewLeave}
-                style={{
-                  background: "#2563eb",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                }}
-              >
-                Simpan
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  background: "#9ca3af",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                }}
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
