@@ -43,7 +43,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Realtime event listener
+  // Realtime load data event
   useEffect(() => {
     const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
@@ -55,7 +55,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsubscribe();
   }, []);
 
-  // 🔁 Load employees
+  // Load data pegawai
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -75,7 +75,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // Save new leave
+  // Simpan event baru
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -95,14 +95,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // Delete event
+  // Hapus event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // Rekap data
+  // Hitung rekap
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -127,7 +127,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     <div
       style={{
         minHeight: "100vh",
-        width: "100vw",
+        width: "100%",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         flexDirection: "column",
@@ -195,7 +195,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {/* Card Utama */}
+      {/* Calendar Card */}
       <div
         style={{
           background: "#fff",
@@ -204,12 +204,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           width: "100%",
           maxWidth: 1000,
           padding: "32px 24px",
-          textAlign: "center",
-          boxSizing: "border-box",
           marginBottom: 40,
         }}
       >
-        {/* Calendar */}
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
@@ -255,7 +252,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         />
       </div>
 
-      {/* Card Rekap */}
+      {/* Rekap Card */}
       <div
         style={{
           background: "#fff",
@@ -265,7 +262,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           maxWidth: 600,
           padding: "28px 24px",
           textAlign: "center",
-          boxSizing: "border-box",
           marginBottom: 50,
         }}
       >
@@ -276,6 +272,37 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
           placeholder="Pilih nama pegawai..."
           isSearchable
+          styles={{
+            control: (base) => ({
+              ...base,
+              backgroundColor: "#f3f4f6",
+              borderColor: "#2563eb",
+              borderRadius: 8,
+              padding: "2px 4px",
+              boxShadow: "none",
+            }),
+            menu: (base) => ({
+              ...base,
+              backgroundColor: "#e5e7eb",
+              color: "#111827",
+              borderRadius: 8,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }),
+            option: (base, state) => ({
+              ...base,
+              backgroundColor: state.isFocused ? "#2563eb" : "#e5e7eb",
+              color: state.isFocused ? "#fff" : "#111827",
+            }),
+            singleValue: (base) => ({
+              ...base,
+              color: "#111827",
+              fontWeight: 600,
+            }),
+            placeholder: (base) => ({
+              ...base,
+              color: "#4b5563",
+            }),
+          }}
         />
 
         {selectedEmployee && (
@@ -344,46 +371,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             <label>Pilih Pegawai:</label>
             <Select
               options={employees}
-              onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
+              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
               placeholder="Pilih nama pegawai..."
               isSearchable
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  backgroundColor: "#f3f4f6",
-                  borderColor: "#2563eb",
-                  borderRadius: 8,
-                  padding: "2px 4px",
-                  boxShadow: "none",
-                  "&:hover": { borderColor: "#1e40af" },
-                }),
-                menu: (base) => ({
-                  ...base,
-                  backgroundColor: "#e5e7eb",
-                  color: "#111827",
-                  borderRadius: 8,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isFocused ? "#2563eb" : "#e5e7eb",
-                  color: state.isFocused ? "#fff" : "#111827",
-                  cursor: "pointer",
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  color: "#111827",
-                  fontWeight: 600,
-                }),
-                placeholder: (base) => ({
-                  ...base,
-                  color: "#4b5563",
-                }),
-                input: (base) => ({
-                  ...base,
-                  color: "#111827",
-                }),
-              }}
             />
 
             <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
