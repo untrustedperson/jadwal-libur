@@ -52,33 +52,33 @@ export default function ManageEmployees() {
     <div
       style={{
         minHeight: "100vh",
-        width: "100%",
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+        width: "100vw",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "flex-start",
-        padding: "40px 20px",
+        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+        padding: "40px 16px",
         boxSizing: "border-box",
+        overflowX: "hidden",
       }}
     >
       {/* Header */}
       <div
         style={{
-          width: "100%",
-          maxWidth: 900,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          flexWrap: "wrap",
+          width: "100%",
+          maxWidth: 900,
           marginBottom: 30,
+          flexWrap: "wrap",
         }}
       >
         <h1
           style={{
             color: "#fff",
-            fontSize: "1.8rem",
             margin: 0,
+            fontSize: "1.8rem",
             fontWeight: 700,
           }}
         >
@@ -95,38 +95,33 @@ export default function ManageEmployees() {
             borderRadius: 8,
             fontWeight: 600,
             cursor: "pointer",
-            fontSize: 15,
           }}
         >
           ← Kembali
         </button>
       </div>
 
-      {/* Card di tengah */}
+      {/* Card Tambah Pegawai */}
       <div
         style={{
           background: "#fff",
           borderRadius: 16,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           width: "100%",
-          maxWidth: 600,
-          padding: "32px 24px",
-          marginBottom: 32,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 16,
+          maxWidth: 500,
+          padding: "28px 24px",
+          marginBottom: 30,
+          textAlign: "center",
         }}
       >
-        <h2 style={{ color: "#1e3a8a", margin: 0 }}>Tambah Pegawai</h2>
-
+        <h2 style={{ color: "#1e3a8a", marginBottom: 20 }}>Tambah Pegawai</h2>
         <div
           style={{
             display: "flex",
+            flexDirection: "row",
+            gap: 10,
             flexWrap: "wrap",
-            gap: "12px",
             justifyContent: "center",
-            width: "100%",
           }}
         >
           <input
@@ -136,9 +131,9 @@ export default function ManageEmployees() {
             onChange={(e) => setNewEmployee(e.target.value)}
             style={{
               flex: 1,
-              minWidth: 240,
-              padding: "12px 16px",
-              borderRadius: 10,
+              minWidth: 200,
+              padding: "10px 14px",
+              borderRadius: 8,
               border: "1px solid #d1d5db",
               fontSize: 15,
               boxSizing: "border-box",
@@ -147,14 +142,13 @@ export default function ManageEmployees() {
           <button
             onClick={handleAdd}
             style={{
-              padding: "12px 22px",
-              borderRadius: 10,
+              padding: "10px 18px",
+              borderRadius: 8,
+              border: "none",
               background: "#2563eb",
               color: "#fff",
-              border: "none",
-              cursor: "pointer",
               fontWeight: 600,
-              fontSize: 15,
+              cursor: "pointer",
             }}
           >
             Tambah
@@ -162,35 +156,26 @@ export default function ManageEmployees() {
         </div>
       </div>
 
-      {/* Tabel daftar pegawai */}
+      {/* Daftar Pegawai */}
       <div
         style={{
           background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          borderRadius: 12,
+          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
           width: "100%",
           maxWidth: 900,
-          padding: "24px 20px",
+          padding: "20px",
           overflowX: "auto",
         }}
       >
-        <h3
-          style={{
-            marginBottom: 16,
-            color: "#1e3a8a",
-            textAlign: "center",
-          }}
-        >
+        <h3 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: 16 }}>
           Daftar Pegawai
         </h3>
-
         <table
           style={{
             width: "100%",
             borderCollapse: "collapse",
             textAlign: "center",
-            borderRadius: 8,
-            overflow: "hidden",
           }}
         >
           <thead>
@@ -204,7 +189,7 @@ export default function ManageEmployees() {
             {employees.map((emp, idx) => (
               <tr key={emp.id} style={{ background: idx % 2 === 0 ? "#fff" : "#f9fafb" }}>
                 <td style={tdStyle}>{idx + 1}</td>
-                <td style={{ ...tdStyle, width: "60%" }}>
+                <td style={tdStyle}>
                   {editId === emp.id ? (
                     <input
                       type="text"
@@ -212,8 +197,8 @@ export default function ManageEmployees() {
                       onChange={(e) => setEditName(e.target.value)}
                       style={{
                         padding: "8px 10px",
-                        border: "1px solid #ccc",
                         borderRadius: 8,
+                        border: "1px solid #d1d5db",
                         width: "100%",
                       }}
                     />
@@ -260,7 +245,7 @@ export default function ManageEmployees() {
         </table>
 
         {employees.length === 0 && (
-          <p style={{ textAlign: "center", marginTop: 16, color: "#6b7280" }}>
+          <p style={{ textAlign: "center", color: "#6b7280", marginTop: 16 }}>
             Belum ada pegawai.
           </p>
         )}
@@ -270,17 +255,15 @@ export default function ManageEmployees() {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: "12px 8px",
-  fontWeight: 600,
-  color: "#374151",
+  padding: "10px",
   borderBottom: "2px solid #e5e7eb",
+  color: "#374151",
+  fontWeight: 600,
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "10px 8px",
+  padding: "8px",
   borderBottom: "1px solid #e5e7eb",
-  fontSize: 14,
-  textAlign: "center",
 };
 
 const btnEdit: React.CSSProperties = {
