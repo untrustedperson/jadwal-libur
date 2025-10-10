@@ -31,12 +31,17 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [total, setTotal] = useState<number>(0);
   const [employees, setEmployees] = useState<string[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [clickedDate, setClickedDate] = useState<string>("");
+
   const navigate = useNavigate();
+  const role = localStorage.getItem("role");
+  const userName = (auth.currentUser?.email || "").split("@")[0];
 
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
-  const role = localStorage.getItem("role");
-  const userName = (auth.currentUser?.email || "").split("@")[0];
 
   // 🔒 Logout
   async function handleLogout() {
@@ -70,36 +75,34 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-  // ➕ CREATE event
-  async function handleDateClick(info: any) {
+  // ➕ CREATE (buka modal)
+  function handleDateClick(info: any) {
     if (!canEdit) return;
+    setClickedDate(info.dateStr);
+    setShowModal(true);
+  }
 
-    const employee = prompt(
-      "Masukkan nama pegawai (atau pilih dari daftar):\n\n" + employees.join(", ")
-    );
-    if (!employee || employee.trim() === "") return;
-
-    const choose = prompt(
-      "Pilih jenis hari libur:\n1. Sakit\n2. Cuti Tahunan\n3. Cuti Penting\n4. Cuti Penangguhan"
-    );
-    if (!choose) return;
-
-    const map: Record<string, string> = {
-      "1": "Sakit",
-      "2": "Cuti Tahunan",
-      "3": "Cuti Penting",
-      "4": "Cuti Penangguhan",
-    };
-    const leaveType = map[choose.trim()] ?? "Tidak Diketahui";
+  // 🧾 Simpan data dari modal
+  async function handleSave() {
+    if (!selectedEmployee.trim() || selectedTypes.length === 0) {
+      alert("Pilih pegawai dan minimal satu jenis libur!");
+      return;
+    }
 
     try {
-      await addDoc(eventsCollection, {
-        title: `${employee} - ${leaveType}`,
-        employee,
-        leaveType,
-        start: info.dateStr,
-        end: info.dateStr,
-      });
+      for (const type of selectedTypes) {
+        await addDoc(eventsCollection, {
+          title: `${selectedEmployee} - ${type}`,
+          employee: selectedEmployee,
+          leaveType: type,
+          start: clickedDate,
+          end: clickedDate,
+        });
+      }
+
+      setShowModal(false);
+      setSelectedEmployee("");
+      setSelectedTypes([]);
     } catch (err) {
       console.error("Gagal menambah event:", err);
     }
@@ -110,7 +113,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     if (!canEdit) return;
     const newTitle = prompt("Ubah nama hari libur:", info.event.title);
     if (!newTitle || newTitle.trim() === "") return;
-
     try {
       const ref = doc(db, "events", info.event.id);
       await updateDoc(ref, { title: newTitle });
@@ -131,7 +133,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // 🧮 Hitung rekap pencarian
+  // 🔍 Hitung rekap libur pegawai
   useEffect(() => {
     if (!search.trim()) {
       setSummary({});
@@ -271,7 +273,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         eventClick={handleEventClick}
       />
 
-      {/* Search bar & hasil */}
+      {/* Search & Summary */}
       <div
         style={{
           marginTop: 24,
@@ -304,7 +306,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         {Object.keys(summary).length > 0 && (
           <div style={{ marginTop: 20 }}>
             <h4 style={{ textAlign: "center", color: "#1e3a8a" }}>
-              Hasil untuk “{search}”
+              Rekap Hari Libur untuk “{search}”
             </h4>
             <table
               style={{
@@ -340,6 +342,152 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         )}
       </div>
+
+      {/* Modal Input Admin */}
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: 24,
+              width: "90%",
+              maxWidth: 400,
+              textAlign: "center",
+            }}
+          >
+            <h3 style={{ color: "#1e3a8a" }}>Tambah Hari Libur</h3>
+            <select
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+              style={{
+                width: "100%",
+                padding: 10,
+                borderRadius: 8,
+                border: "1px solid #d1d5db",
+                marginBottom: 16,
+              }}
+            >
+              <option value="">Pilih Pegawai</option>
+              {employees.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+
+            <div
+              style={{
+                textAlign: "left",
+                marginBottom: 16,
+                paddingLeft: 10,
+              }}
+            >
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes("Sakit")}
+                  onChange={() =>
+                    setSelectedTypes((prev) =>
+                      prev.includes("Sakit")
+                        ? prev.filter((t) => t !== "Sakit")
+                        : [...prev, "Sakit"]
+                    )
+                  }
+                />{" "}
+                Sakit
+              </label>
+              <br />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes("Cuti Tahunan")}
+                  onChange={() =>
+                    setSelectedTypes((prev) =>
+                      prev.includes("Cuti Tahunan")
+                        ? prev.filter((t) => t !== "Cuti Tahunan")
+                        : [...prev, "Cuti Tahunan"]
+                    )
+                  }
+                />{" "}
+                Cuti Tahunan
+              </label>
+              <br />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes("Cuti Penting")}
+                  onChange={() =>
+                    setSelectedTypes((prev) =>
+                      prev.includes("Cuti Penting")
+                        ? prev.filter((t) => t !== "Cuti Penting")
+                        : [...prev, "Cuti Penting"]
+                    )
+                  }
+                />{" "}
+                Cuti Penting
+              </label>
+              <br />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes("Cuti Penangguhan")}
+                  onChange={() =>
+                    setSelectedTypes((prev) =>
+                      prev.includes("Cuti Penangguhan")
+                        ? prev.filter((t) => t !== "Cuti Penangguhan")
+                        : [...prev, "Cuti Penangguhan"]
+                    )
+                  }
+                />{" "}
+                Cuti Penangguhan
+              </label>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "#9ca3af",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSave}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
