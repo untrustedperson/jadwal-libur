@@ -19,7 +19,7 @@ interface CalendarEvent {
   id?: string;
   title: string;
   employee: string;
-  type: string;
+  leaveType: string;
   start: string;
   end?: string;
 }
@@ -89,13 +89,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       "3": "Cuti Penting",
       "4": "Cuti Penangguhan",
     };
-    const type = typeMap[typePrompt.trim()] || "Tidak Diketahui";
+    const leaveType = typeMap[typePrompt.trim()] || "Tidak Diketahui";
 
     try {
       await addDoc(eventsCollection, {
-        title: `${employee} - ${type}`,
+        title: `${employee} - ${leaveType}`,
         employee,
-        type,
+        leaveType,
         start: info.dateStr,
         end: info.dateStr,
       });
@@ -194,7 +194,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
     const counts: Record<string, number> = {};
     filtered.forEach((e) => {
-      counts[e.type] = (counts[e.type] || 0) + 1;
+      counts[e.leaveType] = (counts[e.leaveType] || 0) + 1;
     });
 
     const totalDays = Object.values(counts).reduce((a, b) => a + b, 0);
