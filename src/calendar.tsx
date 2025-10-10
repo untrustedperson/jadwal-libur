@@ -43,10 +43,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Realtime data event
+  // 🔄 Realtime event listener
   useEffect(() => {
-    const unsub = onSnapshot(eventsCollection, (snap) => {
-      const data = snap.docs.map((d) => ({
+    const unsub = onSnapshot(eventsCollection, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({
         id: d.id,
         ...(d.data() as CalendarEvent),
       }));
@@ -75,10 +75,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // 🧩 Simpan event baru
+  // ➕ Tambah hari libur
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
-      return alert("Lengkapi semua data sebelum menyimpan!");
+      return alert("Lengkapi semua data!");
 
     try {
       await addDoc(eventsCollection, {
@@ -92,18 +92,41 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       setSelectedLeaveTypes([]);
       setSelectedEmployeeForAdd(null);
     } catch (err) {
-      console.error("❌ Gagal menambah event:", err);
+      console.error("Gagal menambah event:", err);
     }
   }
 
-  // ❌ Delete event
+  // 🗑️ Hapus event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
-    if (!window.confirm("Yakin hapus data ini?")) return;
+    if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // Render event di kalender
+  // 🔍 Rekap hari libur pegawai
+  useEffect(() => {
+    if (!selectedEmployee) {
+      setSummary({});
+      setTotal(0);
+      return;
+    }
+
+    const filtered = events.filter((e) => e.employee === selectedEmployee);
+    const counts: Record<string, number> = {};
+
+    filtered.forEach((e) => {
+      let types: string[] = [];
+      if (Array.isArray(e.leaveType)) types = e.leaveType;
+      else if (typeof e.leaveType === "string") types = [e.leaveType];
+      else if (typeof (e as any).type === "string") types = [(e as any).type];
+      types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
+    });
+
+    setSummary(counts);
+    setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
+  }, [selectedEmployee, events]);
+
+  // Render event kalender
   function renderEventContent(arg: any) {
     const onDelete = async (e: any) => {
       e.stopPropagation();
@@ -111,9 +134,15 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       if (!window.confirm(`Hapus "${arg.event.title}"?`)) return;
       await deleteEventById(arg.event.id);
     };
-
     return (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
         <span>{arg.event.title}</span>
         {canEdit && (
           <button
@@ -132,67 +161,66 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     );
   }
 
-  // 🔍 Rekap data pegawai
-  useEffect(() => {
-    if (!selectedEmployee) {
-      setSummary({});
-      setTotal(0);
-      return;
-    }
-
-    const filtered = events.filter((e) => e.employee === selectedEmployee);
-    const counts: Record<string, number> = {};
-
-    filtered.forEach((e) => {
-      let types: string[] = [];
-      if (Array.isArray(e.leaveType)) types = e.leaveType;
-      else if (typeof e.leaveType === "string") types = [e.leaveType];
-      else if (typeof (e as any).type === "string") types = [(e as any).type];
-
-      types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
-    });
-
-    setSummary(counts);
-    setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
-  }, [selectedEmployee, events]);
-
   return (
     <div
       style={{
-        padding: "20px 0",
-        width: "100%",
         minHeight: "100vh",
+        width: "100%",
         display: "flex",
-        flexDirection: "column",
+        justifyContent: "center",
         alignItems: "center",
-        background: "#f8fafc",
+        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         overflowX: "hidden",
+        padding: "40px 16px",
+        boxSizing: "border-box",
       }}
     >
-      {/* Header */}
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
+          background: "#fff",
+          borderRadius: 16,
+          boxShadow: "0 6px 30px rgba(0,0,0,0.15)",
+          padding: "24px 32px",
           width: "100%",
           maxWidth: 1100,
-          padding: "0 20px",
-          marginBottom: 16,
           boxSizing: "border-box",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 20, color: "#1e3a8a" }}>
-          📅 Jadwal Hari Libur — Halo, {userName}
-        </h2>
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <h2 style={{ color: "#1e3a8a", margin: 0 }}>
+            📅 Jadwal Hari Libur — Halo, {userName}
+          </h2>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          {(role === "admin" || role === "dev") && (
+          <div style={{ display: "flex", gap: 8 }}>
+            {(role === "admin" || role === "dev") && (
+              <button
+                onClick={() => navigate("/manage-employees")}
+                style={{
+                  background: "#10b981",
+                  color: "#fff",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                👥 Kelola Pegawai
+              </button>
+            )}
             <button
-              onClick={() => navigate("/manage-employees")}
+              onClick={handleLogout}
               style={{
-                background: "#10b981",
+                background: "#2563eb",
                 color: "#fff",
                 padding: "8px 12px",
                 borderRadius: 8,
@@ -201,110 +229,88 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 fontWeight: 600,
               }}
             >
-              👥 Kelola Pegawai
+              Logout
             </button>
-          )}
-          <button
-            onClick={handleLogout}
-            style={{
-              background: "#2563eb",
-              color: "#fff",
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "none",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* Calendar Wrapper (fix layout for PC & mobile) */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 1100,
-          background: "#fff",
-          borderRadius: 12,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          padding: 20,
-          boxSizing: "border-box",
-          marginBottom: 24,
-        }}
-      >
-        <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-          headerToolbar={{
-            left: "prev,next",
-            center: "title",
-            right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
-          }}
-          events={events}
-          eventContent={renderEventContent}
-          dateClick={(info) => {
-            if (canEdit) {
-              setSelectedDate(info.dateStr);
-              setShowModal(true);
-            }
-          }}
-        />
-      </div>
-
-      {/* Rekap Hari Libur Pegawai */}
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 12,
-          padding: 20,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          width: "100%",
-          maxWidth: 500,
-          color: "#111827",
-        }}
-      >
-        <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>🔍 Rekap Hari Libur Pegawai</h3>
-
-        <Select
-          options={employees}
-          onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
-          placeholder="Pilih nama pegawai..."
-          isSearchable
-        />
-
-        {selectedEmployee && (
-          <div style={{ marginTop: 20 }}>
-            <h4 style={{ textAlign: "center" }}>📋 Data untuk {selectedEmployee}</h4>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                textAlign: "center",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#e5e7eb" }}>
-                  <th style={{ padding: 8 }}>Jenis Libur</th>
-                  <th style={{ padding: 8 }}>Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(summary).map(([type, count]) => (
-                  <tr key={type}>
-                    <td style={{ padding: 8 }}>{type}</td>
-                    <td style={{ padding: 8 }}>{count}</td>
-                  </tr>
-                ))}
-                <tr style={{ background: "#f3f4f6", fontWeight: "bold" }}>
-                  <td>Total Hari Libur</td>
-                  <td>{total}</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
-        )}
+        </div>
+
+        {/* Kalender */}
+        <div
+          style={{
+            background: "#f9fafb",
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 24,
+          }}
+        >
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+            headerToolbar={{
+              left: "prev,next",
+              center: "title",
+              right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+            }}
+            events={events}
+            eventContent={renderEventContent}
+            dateClick={(info) => {
+              if (canEdit) {
+                setSelectedDate(info.dateStr);
+                setShowModal(true);
+              }
+            }}
+          />
+        </div>
+
+        {/* Rekap Hari Libur */}
+        <div
+          style={{
+            background: "#f9fafb",
+            borderRadius: 12,
+            padding: 16,
+            textAlign: "center",
+          }}
+        >
+          <h3 style={{ color: "#1e3a8a", marginBottom: 10 }}>
+            🔍 Rekap Hari Libur Pegawai
+          </h3>
+          <Select
+            options={employees}
+            onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
+            placeholder="Pilih nama pegawai..."
+            isSearchable
+          />
+          {selectedEmployee && (
+            <div style={{ marginTop: 16 }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  textAlign: "center",
+                }}
+              >
+                <thead>
+                  <tr style={{ background: "#e5e7eb" }}>
+                    <th style={{ padding: 8 }}>Jenis Libur</th>
+                    <th style={{ padding: 8 }}>Jumlah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(summary).map(([type, count]) => (
+                    <tr key={type}>
+                      <td style={{ padding: 8 }}>{type}</td>
+                      <td style={{ padding: 8 }}>{count}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: "#f3f4f6", fontWeight: "bold" }}>
+                    <td>Total Hari Libur</td>
+                    <td>{total}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal Input Hari Libur */}
@@ -330,25 +336,29 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               padding: 24,
               width: "90%",
               maxWidth: 400,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
             }}
           >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a", marginBottom: 20 }}>
+            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
               Tambah Hari Libur
             </h3>
-
-            <label>Pilih Pegawai:</label>
             <Select
               options={employees}
               onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-              placeholder="Cari pegawai..."
+              placeholder="Pilih pegawai..."
               isSearchable
             />
-
-            <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ marginTop: 12 }}>
+              <label>Jenis Libur:</label>
               {leaveTypes.map((t) => (
-                <label key={t} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <label
+                  key={t}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginTop: 6,
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={selectedLeaveTypes.includes(t)}
@@ -356,15 +366,23 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                       if (e.target.checked)
                         setSelectedLeaveTypes([...selectedLeaveTypes, t]);
                       else
-                        setSelectedLeaveTypes(selectedLeaveTypes.filter((x) => x !== t));
+                        setSelectedLeaveTypes(
+                          selectedLeaveTypes.filter((x) => x !== t)
+                        );
                     }}
                   />
                   {t}
                 </label>
               ))}
             </div>
-
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 20, gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: 20,
+                gap: 8,
+              }}
+            >
               <button
                 onClick={saveNewLeave}
                 style={{
@@ -374,7 +392,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   borderRadius: 8,
                   padding: "8px 16px",
                   cursor: "pointer",
-                  fontWeight: 600,
                 }}
               >
                 Simpan
@@ -388,7 +405,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   borderRadius: 8,
                   padding: "8px 16px",
                   cursor: "pointer",
-                  fontWeight: 600,
                 }}
               >
                 Batal
