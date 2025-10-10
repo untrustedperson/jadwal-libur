@@ -344,11 +344,46 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             <label>Pilih Pegawai:</label>
             <Select
               options={employees}
-              onChange={(opt) =>
-                setSelectedEmployeeForAdd(opt ? opt.value : null)
-              }
-              placeholder="Cari pegawai..."
+              onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
+              placeholder="Pilih nama pegawai..."
               isSearchable
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  backgroundColor: "#f3f4f6",
+                  borderColor: "#2563eb",
+                  borderRadius: 8,
+                  padding: "2px 4px",
+                  boxShadow: "none",
+                  "&:hover": { borderColor: "#1e40af" },
+                }),
+                menu: (base) => ({
+                  ...base,
+                  backgroundColor: "#e5e7eb",
+                  color: "#111827",
+                  borderRadius: 8,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }),
+                option: (base, state) => ({
+                  ...base,
+                  backgroundColor: state.isFocused ? "#2563eb" : "#e5e7eb",
+                  color: state.isFocused ? "#fff" : "#111827",
+                  cursor: "pointer",
+                }),
+                singleValue: (base) => ({
+                  ...base,
+                  color: "#111827",
+                  fontWeight: 600,
+                }),
+                placeholder: (base) => ({
+                  ...base,
+                  color: "#4b5563",
+                }),
+                input: (base) => ({
+                  ...base,
+                  color: "#111827",
+                }),
+              }}
             />
 
             <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
