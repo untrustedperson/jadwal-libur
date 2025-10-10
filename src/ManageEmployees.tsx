@@ -74,15 +74,13 @@ export default function ManageEmployees() {
     <div
       style={{
         minHeight: "100vh",
-        width: "100%",
+        width: "100vw",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "flex-start",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         padding: "40px 16px",
         boxSizing: "border-box",
-        overflowX: "hidden",
       }}
     >
       {/* Header */}
@@ -92,7 +90,7 @@ export default function ManageEmployees() {
           justifyContent: "space-between",
           alignItems: "center",
           width: "100%",
-          maxWidth: 800,
+          maxWidth: 900,
           marginBottom: 30,
           flexWrap: "wrap",
         }}
@@ -124,15 +122,16 @@ export default function ManageEmployees() {
         </button>
       </div>
 
-      {/* Card Utama */}
+      {/* Card Tambah Pegawai */}
       <div
         style={{
           background: "#fff",
           borderRadius: 16,
-          boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           width: "100%",
-          maxWidth: 700,
-          padding: "30px 24px",
+          maxWidth: 500,
+          padding: "28px 24px",
+          marginBottom: 30,
           textAlign: "center",
         }}
       >
@@ -140,10 +139,10 @@ export default function ManageEmployees() {
         <div
           style={{
             display: "flex",
-            flexDirection: window.innerWidth < 600 ? "column" : "row",
+            flexDirection: "row",
             gap: 10,
+            flexWrap: "wrap",
             justifyContent: "center",
-            alignItems: "center",
           }}
         >
           <input
@@ -171,38 +170,43 @@ export default function ManageEmployees() {
               color: "#fff",
               fontWeight: 600,
               cursor: "pointer",
-              width: window.innerWidth < 600 ? "100%" : "auto",
             }}
           >
             Tambah
           </button>
         </div>
+      </div>
 
-        {/* Daftar Pegawai */}
-        <h3
-          style={{
-            color: "#1e3a8a",
-            marginTop: 30,
-            marginBottom: 16,
-            textAlign: "center",
-          }}
-        >
+      {/* Daftar Pegawai */}
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+          width: "100%",
+          maxWidth: 900,
+          padding: "20px",
+          overflowX: "auto",
+        }}
+      >
+        <h3 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: 16 }}>
           Daftar Pegawai
         </h3>
 
         {loading ? (
-          <p style={{ color: "#6b7280" }}>⏳ Memuat data pegawai...</p>
+          <p style={{ textAlign: "center", color: "#6b7280" }}>
+            ⏳ Memuat data pegawai...
+          </p>
         ) : employees.length === 0 ? (
-          <p style={{ color: "#6b7280" }}>Belum ada pegawai.</p>
+          <p style={{ textAlign: "center", color: "#6b7280" }}>
+            Belum ada pegawai.
+          </p>
         ) : (
           <table
             style={{
               width: "100%",
               borderCollapse: "collapse",
               textAlign: "center",
-              background: "#fff",
-              borderRadius: 10,
-              overflow: "hidden",
             }}
           >
             <thead>
@@ -220,8 +224,8 @@ export default function ManageEmployees() {
                     background: idx % 2 === 0 ? "#fff" : "#f9fafb",
                   }}
                 >
-                  <td style={tdStyle}>{idx + 1}</td>
-                  <td style={{ ...tdStyle, color: "#1f2937", fontWeight: 500 }}>
+                  <td style={{ ...tdStyle, color: "#111827" }}>{idx + 1}</td>
+                  <td style={{ ...tdStyle, color: "#111827" }}>
                     {editId === emp.id ? (
                       <input
                         type="text"
@@ -230,7 +234,7 @@ export default function ManageEmployees() {
                         style={{
                           padding: "8px 10px",
                           borderRadius: 8,
-                          border: "1px solid #9ca3af",
+                          border: "1px solid #d1d5db",
                           width: "100%",
                           color: "#111827",
                           background: "#f9fafb",
@@ -289,8 +293,8 @@ export default function ManageEmployees() {
 const thStyle: React.CSSProperties = {
   padding: "10px",
   borderBottom: "2px solid #e5e7eb",
-  color: "#111827",
-  fontWeight: 700,
+  color: "#1f2937",
+  fontWeight: 600,
 };
 
 const tdStyle: React.CSSProperties = {
