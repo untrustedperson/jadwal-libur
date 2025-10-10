@@ -87,7 +87,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0) return alert("Lengkapi semua data!");
     try {
       await addDoc(eventsCollection, {
-        title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
+        title: `${selectedEmployeeForAdd} - ${(selectedLeaveTypes || []).join(", ")}`,
         employee: selectedEmployeeForAdd,
         leaveType: selectedLeaveTypes,
         start: selectedDate,
@@ -150,9 +150,21 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     const filtered = events.filter((e) => e.employee === selectedEmployee);
     const counts: Record<string, number> = {};
     filtered.forEach((e) => {
-      const types = e.leaveType || [];
-      types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
-    });
+  let types: string[] = [];
+
+  // ✅ Normalisasi: pastikan leaveType selalu array
+  if (Array.isArray(e.leaveType)) {
+    types = e.leaveType;
+  } else if (typeof e.leaveType === "string") {
+    types = [e.leaveType];
+  } else if (typeof e.leaveType === "string") {
+    // fallback untuk data lama
+    types = [e.leaveType];
+  }
+
+  types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
+});
+
 
     setSummary(counts);
     setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
