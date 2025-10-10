@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, assertEnv, getDb } from "./_firebase.js";
+import { db, assertEnv, getDb } from "./_firebase.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
