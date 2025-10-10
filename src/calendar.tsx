@@ -11,7 +11,6 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  updateDoc,
   onSnapshot,
   getDocs,
 } from "firebase/firestore";
@@ -98,12 +97,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   }
 
   // ✏️ Edit event
-  async function handleEventClick(info: any) {
-    if (!canEdit) return;
-    const newTitle = prompt("Ubah keterangan hari libur:", info.event.title);
-    if (!newTitle) return;
-    await updateDoc(doc(db, "events", info.event.id), { title: newTitle });
-  }
 
   // ❌ Delete event
   async function deleteEventById(eventId: string) {
