@@ -18,12 +18,11 @@ import {
 interface CalendarEvent {
   id?: string;
   title: string;
-  employee: string;
-  leaveType: string;     // <-- pakai leaveType
+  employee?: string;
+  leaveType?: string;
   start: string;
   end?: string;
-  // kompatibilitas dokumen lama:
-  type?: string;
+  type?: string; // kompatibilitas lama
 }
 
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
@@ -39,7 +38,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // Logout
+  // 🔒 Logout
   async function handleLogout() {
     try {
       await signOut(auth);
@@ -50,30 +49,19 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // Real-time events
+  // 🔁 Real-time load events
   useEffect(() => {
-    const unsub = onSnapshot(eventsCollection, (snap) => {
-      const data = snap.docs.map((d) => {
-        const raw = d.data() as any;
-        const leaveType = raw.leaveType ?? raw.type ?? "Tidak Diketahui"; // <-- fallback
-        const employee = raw.employee ?? "";
-        const title = raw.title ?? `${employee} - ${leaveType}`;
-
-        return {
-          id: d.id,
-          title,
-          employee,
-          leaveType,
-          start: raw.start,
-          end: raw.end,
-        } as CalendarEvent;
-      });
+    const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as CalendarEvent),
+      }));
       setEvents(data);
     });
-    return () => unsub();
+    return () => unsubscribe();
   }, []);
 
-  // Load nama pegawai (dropdown referensi)
+  // 🔁 Load daftar pegawai
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -82,7 +70,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-  // CREATE
+  // ➕ CREATE event
   async function handleDateClick(info: any) {
     if (!canEdit) return;
 
@@ -108,7 +96,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       await addDoc(eventsCollection, {
         title: `${employee} - ${leaveType}`,
         employee,
-        leaveType,                  // <-- simpan leaveType (bukan type)
+        leaveType,
         start: info.dateStr,
         end: info.dateStr,
       });
@@ -117,7 +105,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // UPDATE (judul saja—opsional sesuaikan bila ingin ubah leaveType juga)
+  // ✏️ UPDATE
   async function handleEventClick(info: any) {
     if (!canEdit) return;
     const newTitle = prompt("Ubah nama hari libur:", info.event.title);
@@ -131,7 +119,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // DELETE
+  // ❌ DELETE
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     const ok = window.confirm("Hapus event ini?");
@@ -143,7 +131,30 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // Render event (dengan tombol hapus)
+  // 🧮 Hitung rekap pencarian
+  useEffect(() => {
+    if (!search.trim()) {
+      setSummary({});
+      setTotal(0);
+      return;
+    }
+
+    const lower = search.toLowerCase();
+    const filtered = events.filter((e) =>
+      (e.employee ?? "").toLowerCase().includes(lower)
+    );
+
+    const counts: Record<string, number> = {};
+    filtered.forEach((e) => {
+      const key = e.leaveType ?? e.type ?? "Tidak Diketahui";
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    setSummary(counts);
+    setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
+  }, [search, events]);
+
+  // 🎨 Render event content
   function renderEventContent(arg: any) {
     const onDelete = async (e: any) => {
       e.stopPropagation();
@@ -154,7 +165,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     };
 
     return (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span
           style={{
             fontSize: "14px",
@@ -170,7 +181,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         {canEdit && (
           <button
             onClick={onDelete}
-            style={{ background: "transparent", border: "none", fontSize: 18, cursor: "pointer", padding: 4 }}
+            style={{
+              background: "transparent",
+              border: "none",
+              fontSize: 18,
+              cursor: "pointer",
+              padding: 4,
+            }}
           >
             🗑️
           </button>
@@ -178,26 +195,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       </div>
     );
   }
-
-  // Hitung rekap (auto saat ketik & data berubah)
-  useEffect(() => {
-    if (!search.trim()) {
-      setSummary({});
-      setTotal(0);
-      return;
-    }
-    const lower = search.toLowerCase();
-    const filtered = events.filter((e) => (e.employee || "").toLowerCase().includes(lower));
-
-    const counts: Record<string, number> = {};
-    filtered.forEach((e) => {
-      const key = e.leaveType ?? e.type ?? "Tidak Diketahui"; // <-- pakai leaveType untuk hitung
-      counts[key] = (counts[key] || 0) + 1;
-    });
-
-    setSummary(counts);
-    setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
-  }, [search, events]);
 
   return (
     <div
@@ -211,8 +208,18 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>📅 Jadwal Hari Libur — Halo, {userName}</h2>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <h2 style={{ margin: 0, fontSize: 20 }}>
+          📅 Jadwal Hari Libur — Halo, {userName}
+        </h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {(role === "admin" || role === "dev") && (
@@ -264,7 +271,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         eventClick={handleEventClick}
       />
 
-      {/* Search & Rekap */}
+      {/* Search bar & hasil */}
       <div
         style={{
           marginTop: 24,
@@ -276,21 +283,36 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           marginInline: "auto",
         }}
       >
-        <h3 style={{ textAlign: "center", marginBottom: 10 }}>🔍 Cari Data Hari Libur Pegawai</h3>
+        <h3 style={{ textAlign: "center", marginBottom: 10 }}>
+          🔍 Cari Data Hari Libur Pegawai
+        </h3>
         <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
           <input
             type="text"
             placeholder="Masukkan nama pegawai..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: 1, padding: 10, border: "1px solid #d1d5db", borderRadius: 8 }}
+            style={{
+              flex: 1,
+              padding: 10,
+              border: "1px solid #d1d5db",
+              borderRadius: 8,
+            }}
           />
         </div>
 
         {Object.keys(summary).length > 0 && (
           <div style={{ marginTop: 20 }}>
-            <h4 style={{ textAlign: "center", color: "#1e3a8a" }}>Hasil untuk “{search}”</h4>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center" }}>
+            <h4 style={{ textAlign: "center", color: "#1e3a8a" }}>
+              Hasil untuk “{search}”
+            </h4>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                textAlign: "center",
+              }}
+            >
               <thead>
                 <tr style={{ background: "#e5e7eb" }}>
                   <th style={{ padding: 8 }}>Jenis Libur</th>
@@ -304,7 +326,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                     <td style={{ padding: 8 }}>{count}</td>
                   </tr>
                 ))}
-                <tr style={{ background: "#f3f4f6", fontWeight: "bold" }}>
+                <tr
+                  style={{
+                    background: "#f3f4f6",
+                    fontWeight: "bold",
+                  }}
+                >
                   <td style={{ padding: 8 }}>Total Hari Libur</td>
                   <td style={{ padding: 8 }}>{total}</td>
                 </tr>
