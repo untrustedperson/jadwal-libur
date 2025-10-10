@@ -273,75 +273,97 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         eventClick={handleEventClick}
       />
 
-      {/* Search & Summary */}
-      <div
+      {/* 🔍 Search & Summary */}
+<div
+  style={{
+    marginTop: 24,
+    background: "#ffffff", // 🩵 ubah ke putih agar kontras jelas
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+    maxWidth: 500,
+    marginInline: "auto",
+    color: "#111827", // 🩶 teks warna gelap agar terbaca
+  }}
+>
+  <h3
+    style={{
+      textAlign: "center",
+      marginBottom: 10,
+      color: "#1e3a8a", // biru navy agar kontras
+    }}
+  >
+    🔍 Cari Data Hari Libur Pegawai
+  </h3>
+
+  <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 16 }}>
+    <input
+      type="text"
+      placeholder="Masukkan nama pegawai..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      style={{
+        flex: 1,
+        padding: 10,
+        border: "1px solid #d1d5db",
+        borderRadius: 8,
+        fontSize: 14,
+        color: "#111827",
+      }}
+    />
+  </div>
+
+  {Object.keys(summary).length > 0 && (
+    <div style={{ marginTop: 16 }}>
+      <h4
         style={{
-          marginTop: 24,
-          background: "#f9fafb",
-          borderRadius: 12,
-          padding: 16,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          maxWidth: 500,
-          marginInline: "auto",
+          textAlign: "center",
+          color: "#1e3a8a",
+          marginBottom: 10,
         }}
       >
-        <h3 style={{ textAlign: "center", marginBottom: 10 }}>
-          🔍 Cari Data Hari Libur Pegawai
-        </h3>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-          <input
-            type="text"
-            placeholder="Masukkan nama pegawai..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              flex: 1,
-              padding: 10,
-              border: "1px solid #d1d5db",
-              borderRadius: 8,
-            }}
-          />
-        </div>
+        Rekap Hari Libur untuk “{search}”
+      </h4>
 
-        {Object.keys(summary).length > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <h4 style={{ textAlign: "center", color: "#1e3a8a" }}>
-              Rekap Hari Libur untuk “{search}”
-            </h4>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                textAlign: "center",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#e5e7eb" }}>
-                  <th style={{ padding: 8 }}>Jenis Libur</th>
-                  <th style={{ padding: 8 }}>Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(summary).map(([type, count]) => (
-                  <tr key={type}>
-                    <td style={{ padding: 8 }}>{type}</td>
-                    <td style={{ padding: 8 }}>{count}</td>
-                  </tr>
-                ))}
-                <tr
-                  style={{
-                    background: "#f3f4f6",
-                    fontWeight: "bold",
-                  }}
-                >
-                  <td style={{ padding: 8 }}>Total Hari Libur</td>
-                  <td style={{ padding: 8 }}>{total}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          textAlign: "center",
+          backgroundColor: "#f9fafb", // abu lembut agar beda dari background putih
+          borderRadius: 8,
+          overflow: "hidden",
+        }}
+      >
+        <thead>
+          <tr style={{ background: "#e5e7eb" }}>
+            <th style={{ padding: 10, color: "#111827" }}>Jenis Libur</th>
+            <th style={{ padding: 10, color: "#111827" }}>Jumlah</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(summary).map(([type, count]) => (
+            <tr key={type} style={{ borderBottom: "1px solid #e5e7eb" }}>
+              <td style={{ padding: 10, color: "#1f2937" }}>{type}</td>
+              <td style={{ padding: 10, color: "#1f2937" }}>{count}</td>
+            </tr>
+          ))}
+          <tr
+            style={{
+              background: "#f3f4f6",
+              fontWeight: "bold",
+              color: "#111827",
+            }}
+          >
+            <td style={{ padding: 10 }}>Total Hari Libur</td>
+            <td style={{ padding: 10 }}>{total}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
+
 
       {/* Modal Input Admin */}
       {showModal && (
