@@ -14,7 +14,6 @@ export default function ManageEmployees() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const navigate = useNavigate();
-
   const employeesCollection = collection(db, "employees");
 
   useEffect(() => {
@@ -53,14 +52,14 @@ export default function ManageEmployees() {
     <div
       style={{
         minHeight: "100vh",
-        width: "100vw",
+        width: "100%",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
-        padding: "40px 20px",
+        padding: "40px 16px",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "hidden", // 🧩 Hilangkan sisa background kanan
       }}
     >
       <div
@@ -69,11 +68,13 @@ export default function ManageEmployees() {
           padding: "40px",
           borderRadius: 16,
           width: "100%",
-          maxWidth: "950px",
+          maxWidth: "1000px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
           display: "flex",
           flexDirection: "column",
           gap: "24px",
+          boxSizing: "border-box",
+          overflow: "hidden",
         }}
       >
         {/* Header */}
@@ -83,7 +84,7 @@ export default function ManageEmployees() {
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
-            rowGap: "10px",
+            gap: 10,
           }}
         >
           <h1 style={{ margin: 0, color: "#1e3a8a", fontSize: "1.8rem" }}>👥 Kelola Pegawai</h1>
@@ -125,6 +126,7 @@ export default function ManageEmployees() {
               borderRadius: 10,
               border: "1px solid #d1d5db",
               fontSize: 15,
+              boxSizing: "border-box",
             }}
           />
           <button
@@ -144,7 +146,7 @@ export default function ManageEmployees() {
           </button>
         </div>
 
-        {/* Tabel */}
+        {/* Tabel Pegawai */}
         <div
           style={{
             overflowX: "auto",
@@ -159,6 +161,7 @@ export default function ManageEmployees() {
               fontSize: 15,
               borderRadius: 12,
               overflow: "hidden",
+              tableLayout: "fixed", // 🧩 Supaya kolom tidak melebar keluar layar
             }}
           >
             <thead style={{ background: "#f3f4f6" }}>
@@ -190,6 +193,7 @@ export default function ManageEmployees() {
                           border: "1px solid #ccc",
                           borderRadius: 8,
                           width: "100%",
+                          boxSizing: "border-box",
                         }}
                       />
                     ) : (
@@ -202,6 +206,7 @@ export default function ManageEmployees() {
                       display: "flex",
                       gap: "8px",
                       justifyContent: "center",
+                      flexWrap: "wrap",
                     }}
                   >
                     {editId === emp.id ? (
@@ -260,7 +265,6 @@ export default function ManageEmployees() {
   );
 }
 
-// 🎨 Style untuk tabel dan tombol
 const thStyle: React.CSSProperties = {
   padding: "14px 8px",
   textAlign: "center",
