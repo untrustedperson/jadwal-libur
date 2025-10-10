@@ -43,7 +43,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Realtime event listener
+  // 🔄 Realtime listener
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
@@ -75,7 +75,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // ➕ Simpan hari libur baru
+  // ➕ Simpan event baru
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -95,24 +95,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // ❌ Delete
+  // ❌ Hapus event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // 🔍 Rekap data
+  // 🔍 Rekap data pegawai
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
       setTotal(0);
       return;
     }
-
     const filtered = events.filter((e) => e.employee === selectedEmployee);
     const counts: Record<string, number> = {};
-
     filtered.forEach((e) => {
       const types = Array.isArray(e.leaveType)
         ? e.leaveType
@@ -121,12 +119,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         : [];
       types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
     });
-
     setSummary(counts);
     setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
   }, [selectedEmployee, events]);
 
-  // Render Event
+  // Render event dengan tombol hapus
   function renderEventContent(arg: any) {
     const onDelete = async (e: any) => {
       e.stopPropagation();
@@ -135,14 +132,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       await deleteEventById(arg.event.id);
     };
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          width: "100%",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <span>{arg.event.title}</span>
         {canEdit && (
           <button
@@ -165,11 +155,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     <div
       style={{
         minHeight: "100vh",
-        width: "100%",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         justifyContent: "center",
-        alignItems: "center",
+        alignItems: "flex-start",
         padding: "40px 20px",
         boxSizing: "border-box",
         overflowX: "hidden",
@@ -183,7 +172,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           borderRadius: 16,
           padding: "36px 40px",
           boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
-          boxSizing: "border-box",
         }}
       >
         {/* Header */}
@@ -262,7 +250,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           />
         </div>
 
-        {/* Rekap Pegawai */}
+        {/* Rekap Data */}
         <div
           style={{
             background: "#f1f5f9",
@@ -328,7 +316,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             left: 0,
             width: "100vw",
             height: "100vh",
-            background: "rgba(0,0,0,0.4)",
+            background: "rgba(0,0,0,0.5)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -338,7 +326,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           <div
             style={{
               background: "#fff",
-              borderRadius: 16,
+              borderRadius: 12,
               padding: 24,
               width: "90%",
               maxWidth: 400,
@@ -347,40 +335,35 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
               Tambah Hari Libur
             </h3>
+
+            <label>Pilih Pegawai:</label>
             <Select
               options={employees}
-              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-              placeholder="Pilih pegawai..."
+              onChange={(opt) =>
+                setSelectedEmployeeForAdd(opt ? opt.value : null)
+              }
+              placeholder="Cari pegawai..."
               isSearchable
             />
-            <div style={{ marginTop: 12 }}>
-              <label>Jenis Libur:</label>
+
+            <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {leaveTypes.map((t) => (
-                <label
-                  key={t}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    marginTop: 6,
-                  }}
-                >
+                <label key={t} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <input
                     type="checkbox"
                     checked={selectedLeaveTypes.includes(t)}
-                    onChange={(e) => {
-                      if (e.target.checked)
-                        setSelectedLeaveTypes([...selectedLeaveTypes, t]);
-                      else
-                        setSelectedLeaveTypes(
-                          selectedLeaveTypes.filter((x) => x !== t)
-                        );
-                    }}
+                    onChange={(e) =>
+                      e.target.checked
+                        ? setSelectedLeaveTypes([...selectedLeaveTypes, t])
+                        : setSelectedLeaveTypes(selectedLeaveTypes.filter((x) => x !== t))
+                    }
                   />
                   {t}
                 </label>
               ))}
             </div>
+
             <div
               style={{
                 display: "flex",
