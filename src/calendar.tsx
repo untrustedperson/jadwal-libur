@@ -43,7 +43,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Realtime event listener
+  // 🔄 Ambil data event realtime
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
@@ -75,7 +75,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // ➕ Tambah hari libur
+  // ➕ Simpan hari libur baru
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -96,14 +96,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // 🗑️ Hapus event
+  // ❌ Hapus event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // 🔍 Rekap hari libur pegawai
+  // 🔍 Rekap data pegawai
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -115,10 +115,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     const counts: Record<string, number> = {};
 
     filtered.forEach((e) => {
-      let types: string[] = [];
-      if (Array.isArray(e.leaveType)) types = e.leaveType;
-      else if (typeof e.leaveType === "string") types = [e.leaveType];
-      else if (typeof (e as any).type === "string") types = [(e as any).type];
+      const types = Array.isArray(e.leaveType)
+        ? e.leaveType
+        : typeof e.leaveType === "string"
+        ? [e.leaveType]
+        : [];
       types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
     });
 
@@ -168,21 +169,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         width: "100%",
         display: "flex",
         justifyContent: "center",
-        alignItems: "center",
+        alignItems: "flex-start",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-        overflowX: "hidden",
         padding: "40px 16px",
         boxSizing: "border-box",
+        overflowX: "hidden",
       }}
     >
       <div
         style={{
           background: "#fff",
           borderRadius: 16,
-          boxShadow: "0 6px 30px rgba(0,0,0,0.15)",
-          padding: "24px 32px",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+          padding: "32px 28px",
           width: "100%",
           maxWidth: 1100,
+          margin: "0 auto",
           boxSizing: "border-box",
         }}
       >
@@ -192,7 +194,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 16,
+            marginBottom: 20,
             flexWrap: "wrap",
           }}
         >
@@ -237,7 +239,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         {/* Kalender */}
         <div
           style={{
-            background: "#f9fafb",
+            background: "#f8fafc",
             borderRadius: 12,
             padding: 12,
             marginBottom: 24,
@@ -265,13 +267,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         {/* Rekap Hari Libur */}
         <div
           style={{
-            background: "#f9fafb",
+            background: "#e5e7eb",
             borderRadius: 12,
-            padding: 16,
-            textAlign: "center",
+            padding: 20,
+            color: "#111827",
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
           }}
         >
-          <h3 style={{ color: "#1e3a8a", marginBottom: 10 }}>
+          <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
             🔍 Rekap Hari Libur Pegawai
           </h3>
           <Select
@@ -282,17 +285,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           />
           {selectedEmployee && (
             <div style={{ marginTop: 16 }}>
+              <h4 style={{ textAlign: "center", color: "#1e3a8a" }}>
+                📋 Data untuk {selectedEmployee}
+              </h4>
               <table
                 style={{
                   width: "100%",
                   borderCollapse: "collapse",
                   textAlign: "center",
+                  background: "#f1f5f9",
+                  borderRadius: 8,
                 }}
               >
                 <thead>
-                  <tr style={{ background: "#e5e7eb" }}>
-                    <th style={{ padding: 8 }}>Jenis Libur</th>
-                    <th style={{ padding: 8 }}>Jumlah</th>
+                  <tr style={{ background: "#cbd5e1" }}>
+                    <th style={{ padding: 10 }}>Jenis Libur</th>
+                    <th style={{ padding: 10 }}>Jumlah</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -302,7 +310,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                       <td style={{ padding: 8 }}>{count}</td>
                     </tr>
                   ))}
-                  <tr style={{ background: "#f3f4f6", fontWeight: "bold" }}>
+                  <tr style={{ background: "#dbeafe", fontWeight: "bold" }}>
                     <td>Total Hari Libur</td>
                     <td>{total}</td>
                   </tr>
@@ -320,8 +328,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             position: "fixed",
             top: 0,
             left: 0,
-            width: "100%",
-            height: "100%",
+            width: "100vw",
+            height: "100vh",
             background: "rgba(0,0,0,0.4)",
             display: "flex",
             justifyContent: "center",
