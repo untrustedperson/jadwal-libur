@@ -19,7 +19,7 @@ interface CalendarEvent {
   id?: string;
   title: string;
   employee: string;
-  type: string;
+  leaveType: string;
   start: string;
   end?: string;
 }
@@ -194,7 +194,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
     const counts: Record<string, number> = {};
     filtered.forEach((e) => {
-      counts[e.type] = (counts[e.type] || 0) + 1;
+      counts[e.leaveType] = (counts[e.leaveType] || 0) + 1;
     });
 
     setSummary(counts);
