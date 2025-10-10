@@ -221,7 +221,7 @@ export default function ManageEmployees() {
                 <tr
                   key={emp.id}
                   style={{
-                    background: idx % 2 === 0 ? "#fff" : "#f9fafb",
+                    background: idx % 2 === 0 ? "#fff" : "#0a0a0a",
                   }}
                 >
                   <td style={tdStyle}>{idx + 1}</td>
