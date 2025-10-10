@@ -41,9 +41,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
+  // @ts-ignore
+
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // Realtime event listener
   useEffect(() => {
     const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
@@ -55,7 +56,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsubscribe();
   }, []);
 
-  // Load employees
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -68,14 +68,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-  // Logout
   async function handleLogout() {
     await signOut(auth);
     localStorage.removeItem("role");
     navigate("/login");
   }
 
-  // Save new leave
+  // @ts-ignore
+
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -95,14 +95,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // Delete event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // Rekap data
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -135,7 +133,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         justifyContent: "flex-start",
         padding: "40px 16px",
         boxSizing: "border-box",
-        overflowX: "hidden", // ✅ cegah sisa background kanan
+        overflow: "hidden", // ✅ Perbaiki sisa background kanan
       }}
     >
       {/* Header */}
@@ -204,68 +202,61 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           width: "100%",
           maxWidth: 1000,
           padding: "32px 24px",
-          marginBottom: 40,
+          margin: "0 auto 40px",
           overflow: "hidden",
         }}
       >
-        <div style={{ width: "100%", overflowX: "hidden" }}>
-          <FullCalendar
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-            headerToolbar={{
-              left: "prev,next",
-              center: "title",
-              right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
-            }}
-            events={events}
-            eventContent={(arg) => (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 14,
-                }}
-              >
-                <span>{arg.event.title}</span>
-                {canEdit && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteEventById(arg.event.id);
-                    }}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      fontSize: 16,
-                      cursor: "pointer",
-                    }}
-                  >
-                    🗑️
-                  </button>
-                )}
-              </div>
-            )}
-            dateClick={(info) => {
-              if (canEdit) {
-                setSelectedDate(info.dateStr);
-                setShowModal(true);
-              }
-            }}
-          />
-        </div>
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+          headerToolbar={{
+            left: "prev,next",
+            center: "title",
+            right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+          }}
+          events={events}
+          eventContent={(arg) => (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+              <span>{arg.event.title}</span>
+              {canEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteEventById(arg.event.id);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    fontSize: 16,
+                    cursor: "pointer",
+                  }}
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
+          )}
+          dateClick={(info) => {
+            if (canEdit) {
+              setSelectedDate(info.dateStr);
+              setShowModal(true);
+            }
+          }}
+        />
       </div>
 
       {/* Rekap Card */}
       <div
         style={{
-          background: "#fff",
+          background: "#f8fafc",
           borderRadius: 16,
           boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           width: "100%",
           maxWidth: 600,
           padding: "28px 24px",
           textAlign: "center",
-          marginBottom: 50,
+          margin: "0 auto 60px",
+          color: "#111827",
         }}
       >
         <h2 style={{ color: "#1e3a8a", marginBottom: 20 }}>🔍 Rekap Hari Libur Pegawai</h2>
@@ -278,7 +269,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           styles={{
             control: (base) => ({
               ...base,
-              backgroundColor: "#e5e7eb",
+              backgroundColor: "#e2e8f0",
               borderColor: "#2563eb",
               borderRadius: 8,
               padding: "2px 4px",
@@ -291,7 +282,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             }),
             menu: (base) => ({
               ...base,
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#f1f5f9",
               color: "#111827",
               borderRadius: 8,
             }),
