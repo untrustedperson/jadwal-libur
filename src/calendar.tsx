@@ -30,7 +30,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [total, setTotal] = useState<number>(0);
-  const [showModal, setShowModal] = useState(false);
+  const [_showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -43,7 +43,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // Realtime load data event
+  // Realtime event listener
   useEffect(() => {
     const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
@@ -55,7 +55,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsubscribe();
   }, []);
 
-  // Load data pegawai
+  // Load employees
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -75,7 +75,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // Simpan event baru
+  // Save new leave
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -95,14 +95,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // Hapus event
+  // Delete event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // Hitung rekap
+  // Rekap data
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -135,7 +135,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         justifyContent: "flex-start",
         padding: "40px 16px",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "hidden", // ✅ cegah sisa background kanan
       }}
     >
       {/* Header */}
@@ -205,51 +205,54 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           maxWidth: 1000,
           padding: "32px 24px",
           marginBottom: 40,
+          overflow: "hidden",
         }}
       >
-        <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-          headerToolbar={{
-            left: "prev,next",
-            center: "title",
-            right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
-          }}
-          events={events}
-          eventContent={(arg) => (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 14,
-              }}
-            >
-              <span>{arg.event.title}</span>
-              {canEdit && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteEventById(arg.event.id);
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    fontSize: 16,
-                    cursor: "pointer",
-                  }}
-                >
-                  🗑️
-                </button>
-              )}
-            </div>
-          )}
-          dateClick={(info) => {
-            if (canEdit) {
-              setSelectedDate(info.dateStr);
-              setShowModal(true);
-            }
-          }}
-        />
+        <div style={{ width: "100%", overflowX: "hidden" }}>
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+            headerToolbar={{
+              left: "prev,next",
+              center: "title",
+              right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+            }}
+            events={events}
+            eventContent={(arg) => (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 14,
+                }}
+              >
+                <span>{arg.event.title}</span>
+                {canEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteEventById(arg.event.id);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      fontSize: 16,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            )}
+            dateClick={(info) => {
+              if (canEdit) {
+                setSelectedDate(info.dateStr);
+                setShowModal(true);
+              }
+            }}
+          />
+        </div>
       </div>
 
       {/* Rekap Card */}
@@ -275,32 +278,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           styles={{
             control: (base) => ({
               ...base,
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#e5e7eb",
               borderColor: "#2563eb",
               borderRadius: 8,
               padding: "2px 4px",
               boxShadow: "none",
-            }),
-            menu: (base) => ({
-              ...base,
-              backgroundColor: "#e5e7eb",
-              color: "#111827",
-              borderRadius: 8,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            }),
-            option: (base, state) => ({
-              ...base,
-              backgroundColor: state.isFocused ? "#2563eb" : "#e5e7eb",
-              color: state.isFocused ? "#fff" : "#111827",
             }),
             singleValue: (base) => ({
               ...base,
               color: "#111827",
               fontWeight: 600,
             }),
-            placeholder: (base) => ({
+            menu: (base) => ({
               ...base,
-              color: "#4b5563",
+              backgroundColor: "#f3f4f6",
+              color: "#111827",
+              borderRadius: 8,
             }),
           }}
         />
@@ -338,93 +331,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         )}
       </div>
-
-      {/* Modal Tambah Libur */}
-      {showModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: 24,
-              width: "90%",
-              maxWidth: 400,
-            }}
-          >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
-              Tambah Hari Libur
-            </h3>
-
-            <label>Pilih Pegawai:</label>
-            <Select
-              options={employees}
-              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-              placeholder="Pilih nama pegawai..."
-              isSearchable
-            />
-
-            <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {leaveTypes.map((t) => (
-                <label key={t} style={{ display: "flex", alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedLeaveTypes.includes(t)}
-                    onChange={(e) =>
-                      e.target.checked
-                        ? setSelectedLeaveTypes([...selectedLeaveTypes, t])
-                        : setSelectedLeaveTypes(selectedLeaveTypes.filter((x) => x !== t))
-                    }
-                  />
-                  <span style={{ marginLeft: 6 }}>{t}</span>
-                </label>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 20 }}>
-              <button
-                onClick={saveNewLeave}
-                style={{
-                  background: "#2563eb",
-                  color: "#fff",
-                  padding: "8px 16px",
-                  borderRadius: 8,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Simpan
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  background: "#9ca3af",
-                  color: "#fff",
-                  padding: "8px 16px",
-                  borderRadius: 8,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
