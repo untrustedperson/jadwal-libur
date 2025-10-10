@@ -6,6 +6,7 @@ import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
 import { auth, db } from "./firebaseConfig";
 import { onSnapshot, doc } from "firebase/firestore";
+import ManageEmployees from "./ManageEmployees";
 
 function PrivateRoute({
   children,
@@ -83,6 +84,15 @@ export default function App() {
           path="/calendar"
           element={<Calendar canEdit={role === "admin" || role === "dev"} />}
         />
+        <Route
+  path="/manage-employees"
+  element={
+    <PrivateRoute allowedRoles={["admin", "dev"]}>
+      <ManageEmployees />
+    </PrivateRoute>
+  }
+/>
+
         <Route
           path="/dashboard"
           element={

@@ -215,4 +215,3 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     </div>
   );
 }
-
