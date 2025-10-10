@@ -19,7 +19,7 @@ interface CalendarEvent {
   id?: string;
   title: string;
   employee: string;
-  leaveType: string[];
+  leaveType: string[] | string;
   start: string;
   end?: string;
 }
@@ -37,26 +37,21 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  const leaveTypes = [
-    "Sakit",
-    "Cuti Tahunan",
-    "Cuti Penting",
-    "Cuti Penangguhan",
-  ];
+  const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Realtime event listener
+  // 🔄 Real-time load data
   useEffect(() => {
-    const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({
+    const unsub = onSnapshot(eventsCollection, (snap) => {
+      const data = snap.docs.map((d) => ({
         id: d.id,
-        ...(d.data() as Omit<CalendarEvent, "id">),
+        ...(d.data() as CalendarEvent),
       }));
       setEvents(data);
     });
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  // 🔁 Ambil daftar pegawai dari database
+  // 🔁 Ambil daftar pegawai
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -76,28 +71,29 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // ➕ CREATE (gunakan dropdown interaktif)
-  // 🧩 Modal input interaktif
+  // 📆 Modal input hari libur
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
 
   async function saveNewLeave() {
-    if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0) return alert("Lengkapi semua data!");
+    if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
+      return alert("Lengkapi semua data sebelum menyimpan!");
+
     try {
       await addDoc(eventsCollection, {
-        title: `${selectedEmployeeForAdd} - ${(selectedLeaveTypes || []).join(", ")}`,
+        title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
         employee: selectedEmployeeForAdd,
         leaveType: selectedLeaveTypes,
         start: selectedDate,
         end: selectedDate,
       });
       setShowModal(false);
-      setSelectedEmployeeForAdd(null);
       setSelectedLeaveTypes([]);
+      setSelectedEmployeeForAdd(null);
     } catch (err) {
-      console.error("Gagal menambah event:", err);
+      console.error("❌ Gagal menambah event:", err);
     }
   }
 
@@ -106,11 +102,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   // ❌ DELETE
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
-    if (!window.confirm("Hapus event ini?")) return;
+    if (!window.confirm("Yakin hapus data ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // Render event (dengan tombol hapus)
+  // Render event
   function renderEventContent(arg: any) {
     const onDelete = async (e: any) => {
       e.stopPropagation();
@@ -120,7 +116,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     };
 
     return (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>{arg.event.title}</span>
         {canEdit && (
           <button
@@ -128,7 +124,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             style={{
               background: "transparent",
               border: "none",
-              fontSize: 18,
+              fontSize: 16,
               cursor: "pointer",
             }}
           >
@@ -139,7 +135,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     );
   }
 
-  // 🔍 Dropdown filter pegawai untuk rekap libur
+  // 🔍 Rekap data pegawai
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -149,22 +145,15 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
     const filtered = events.filter((e) => e.employee === selectedEmployee);
     const counts: Record<string, number> = {};
+
     filtered.forEach((e) => {
-  let types: string[] = [];
+      let types: string[] = [];
+      if (Array.isArray(e.leaveType)) types = e.leaveType;
+      else if (typeof e.leaveType === "string") types = [e.leaveType];
+      else if (typeof (e as any).type === "string") types = [(e as any).type];
 
-  // ✅ Normalisasi: pastikan leaveType selalu array
-  if (Array.isArray(e.leaveType)) {
-    types = e.leaveType;
-  } else if (typeof e.leaveType === "string") {
-    types = [e.leaveType];
-  } else if (typeof e.leaveType === "string") {
-    // fallback untuk data lama
-    types = [e.leaveType];
-  }
-
-  types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
-});
-
+      types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
+    });
 
     setSummary(counts);
     setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
@@ -173,7 +162,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   return (
     <div style={{ padding: 20, width: "100%", overflowX: "hidden" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
+      >
         <h2>📅 Jadwal Hari Libur — Halo, {userName}</h2>
         <div style={{ display: "flex", gap: 8 }}>
           {(role === "admin" || role === "dev") && (
@@ -226,7 +222,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         }}
       />
 
-      {/* Search / Rekap Data Pegawai */}
+      {/* Rekap Hari Libur Pegawai */}
       <div
         style={{
           marginTop: 30,
@@ -239,15 +235,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           color: "#111827",
         }}
       >
-        <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
-          🔍 Rekap Hari Libur Pegawai
-        </h3>
+        <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>🔍 Rekap Hari Libur Pegawai</h3>
 
         <Select
           options={employees}
-          onChange={(opt: { value: string; label: string } | null) =>
-            setSelectedEmployee(opt?.value || null)
-          }
+          onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
           placeholder="Pilih nama pegawai..."
           isSearchable
         />
@@ -304,17 +296,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               maxWidth: 400,
             }}
           >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
-              Tambah Hari Libur
-            </h3>
+            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
 
             <label>Pilih Pegawai:</label>
             <Select
               options={employees}
-              onChange={(opt: { value: string; label: string } | null) =>
-                setSelectedEmployeeForAdd(opt?.value || null)
-              }
-
+              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
               placeholder="Cari pegawai..."
               isSearchable
             />
