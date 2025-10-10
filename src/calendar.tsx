@@ -30,6 +30,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [total, setTotal] = useState<number>(0);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
+  const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
@@ -37,10 +41,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // @ts-ignore
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Load event realtime
+  // 🔄 Realtime events
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -52,7 +55,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsub();
   }, []);
 
-  // 🔁 Load nama pegawai
+  // 🔁 Load employees
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -73,49 +76,34 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // ➕ Tambah event
-  async function handleDateClick(info: any) {
-    if (!canEdit) return;
-
-    const employee = prompt(
-      "Masukkan nama pegawai (atau pilih dari daftar):\n\n" + employees.map((e) => e.label).join(", ")
-    );
-    if (!employee || employee.trim() === "") return;
-
-    const choose = prompt(
-      "Pilih jenis hari libur (pisahkan dengan koma):\n1. Sakit\n2. Cuti Tahunan\n3. Cuti Penting\n4. Cuti Penangguhan"
-    );
-    if (!choose) return;
-
-    const map: Record<string, string> = {
-      "1": "Sakit",
-      "2": "Cuti Tahunan",
-      "3": "Cuti Penting",
-      "4": "Cuti Penangguhan",
-    };
-
-    const leaveType = choose
-      .split(",")
-      .map((x) => map[x.trim()] || "Tidak Diketahui")
-      .filter(Boolean);
-
-    await addDoc(eventsCollection, {
-      title: `${employee} - ${leaveType.join(", ")}`,
-      employee,
-      leaveType,
-      start: info.dateStr,
-      end: info.dateStr,
-    });
+  // ➕ Tambah jadwal libur
+  async function saveNewLeave() {
+    if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
+      return alert("Lengkapi semua data!");
+    try {
+      await addDoc(eventsCollection, {
+        title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
+        employee: selectedEmployeeForAdd,
+        leaveType: selectedLeaveTypes,
+        start: selectedDate,
+        end: selectedDate,
+      });
+      setShowModal(false);
+      setSelectedLeaveTypes([]);
+      setSelectedEmployeeForAdd(null);
+    } catch (err) {
+      console.error("Gagal menambah event:", err);
+    }
   }
 
   // ❌ Hapus event
-  async function deleteEventById(id: string) {
+  async function deleteEventById(eventId: string) {
     if (!canEdit) return;
-    if (!window.confirm("Yakin ingin menghapus?")) return;
-    await deleteDoc(doc(db, "events", id));
+    if (!window.confirm("Hapus event ini?")) return;
+    await deleteDoc(doc(db, "events", eventId));
   }
 
-  // 📊 Hitung rekap otomatis
+  // 📊 Rekap data
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -141,12 +129,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       style={{
         minHeight: "100vh",
         width: "100vw",
+        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         padding: "40px 16px",
-        boxSizing: "border-box",
         overflowX: "hidden",
       }}
     >
@@ -162,19 +149,20 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           flexWrap: "wrap",
         }}
       >
-        <h1 style={{ color: "#fff", fontSize: "1.8rem", fontWeight: 700, margin: 0 }}>
+        <h1 style={{ color: "#fff", margin: 0, fontSize: "1.8rem", fontWeight: 700 }}>
           📅 Jadwal Hari Libur — Halo, {userName}
         </h1>
+
         <div style={{ display: "flex", gap: 10 }}>
           {(role === "admin" || role === "dev") && (
             <button
               onClick={() => navigate("/manage-employees")}
               style={{
-                padding: "10px 18px",
                 background: "#10b981",
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
+                padding: "10px 18px",
                 fontWeight: 600,
                 cursor: "pointer",
               }}
@@ -185,11 +173,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           <button
             onClick={handleLogout}
             style={{
-              padding: "10px 18px",
               background: "#2563eb",
               color: "#fff",
               border: "none",
               borderRadius: 8,
+              padding: "10px 18px",
               fontWeight: 600,
               cursor: "pointer",
             }}
@@ -199,7 +187,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {/* Calendar Card */}
+      {/* Calendar */}
       <div
         style={{
           background: "#fff",
@@ -209,7 +197,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           maxWidth: 1000,
           padding: "28px 20px",
           marginBottom: 40,
-          textAlign: "center",
+          position: "relative",
         }}
       >
         <FullCalendar
@@ -222,8 +210,20 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           }}
           events={events}
           eventContent={(arg) => (
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
-              <span>{arg.event.title}</span>
+            <div
+              style={{
+                position: "relative",
+                background: "#eff6ff",
+                borderRadius: 8,
+                padding: "4px 8px",
+                overflow: "hidden",
+                textAlign: "left",
+                wordBreak: "break-word",
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 500, color: "#1e3a8a" }}>
+                {arg.event.title}
+              </span>
               {canEdit && (
                 <button
                   onClick={(e) => {
@@ -231,8 +231,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                     deleteEventById(arg.event.id);
                   }}
                   style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 4,
                     background: "transparent",
                     border: "none",
+                    color: "#ef4444",
                     fontSize: 16,
                     cursor: "pointer",
                   }}
@@ -242,7 +246,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               )}
             </div>
           )}
-          dateClick={handleDateClick}
+          dateClick={(info) => {
+            if (canEdit) {
+              setSelectedDate(info.dateStr);
+              setShowModal(true);
+            }
+          }}
         />
       </div>
 
@@ -272,15 +281,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               backgroundColor: "#1e293b",
               borderColor: "#0ea5e9",
               borderRadius: 8,
-              padding: "2px 4px",
               boxShadow: "none",
-              "&:hover": { borderColor: "#38bdf8" },
             }),
-            singleValue: (base) => ({
-              ...base,
-              color: "#f9fafb",
-              fontWeight: 600,
-            }),
+            singleValue: (base) => ({ ...base, color: "#f9fafb", fontWeight: 600 }),
             menu: (base) => ({
               ...base,
               backgroundColor: "#0f172a",
@@ -292,14 +295,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               backgroundColor: state.isFocused ? "#2563eb" : "#1e293b",
               color: "#f9fafb",
               cursor: "pointer",
-            }),
-            placeholder: (base) => ({
-              ...base,
-              color: "#cbd5e1",
-            }),
-            input: (base) => ({
-              ...base,
-              color: "#f9fafb",
             }),
           }}
         />
@@ -337,6 +332,95 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         )}
       </div>
+
+      {/* Modal Tambah Jadwal */}
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 999,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: 24,
+              width: "90%",
+              maxWidth: 420,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            }}
+          >
+            <h3 style={{ color: "#1e3a8a", textAlign: "center", marginBottom: 16 }}>
+              Tambah Hari Libur
+            </h3>
+
+            <label style={{ fontWeight: 600 }}>Pilih Pegawai</label>
+            <Select
+              options={employees}
+              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
+              placeholder="Cari nama pegawai..."
+              isSearchable
+            />
+
+            <label style={{ fontWeight: 600, marginTop: 12 }}>Jenis Libur</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {leaveTypes.map((t) => (
+                <label key={t}>
+                  <input
+                    type="checkbox"
+                    checked={selectedLeaveTypes.includes(t)}
+                    onChange={(e) => {
+                      if (e.target.checked)
+                        setSelectedLeaveTypes([...selectedLeaveTypes, t]);
+                      else
+                        setSelectedLeaveTypes(selectedLeaveTypes.filter((x) => x !== t));
+                    }}
+                  />{" "}
+                  {t}
+                </label>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 8 }}>
+              <button
+                onClick={saveNewLeave}
+                style={{
+                  background: "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                }}
+              >
+                Simpan
+              </button>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  background: "#9ca3af",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
