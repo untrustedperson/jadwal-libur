@@ -19,7 +19,7 @@ interface CalendarEvent {
   id?: string;
   title: string;
   employee: string;
-  leaveType: string;
+  type: string;
   start: string;
   end?: string;
 }
@@ -28,11 +28,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [search, setSearch] = useState("");
   const [summary, setSummary] = useState<Record<string, number>>({});
+  const [total, setTotal] = useState<number>(0);
   const [employees, setEmployees] = useState<string[]>([]);
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
   const userName = (auth.currentUser?.email || "").split("@")[0];
+  const role = localStorage.getItem("role");
 
   // 🔒 Logout
   async function handleLogout() {
@@ -70,33 +72,30 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function handleDateClick(info: any) {
     if (!canEdit) return;
 
-    // Menu pilihan pegawai
     const employee = prompt(
       "Masukkan nama pegawai (atau pilih dari daftar):\n\n" +
         employees.join(", ")
     );
     if (!employee || employee.trim() === "") return;
 
-    // Menu pilihan jenis libur
-    const type = prompt(
+    const typePrompt = prompt(
       "Pilih jenis hari libur:\n1. Sakit\n2. Cuti Tahunan\n3. Cuti Penting\n4. Cuti Penangguhan"
     );
-    if (!type) return;
+    if (!typePrompt) return;
 
-    const mappedType = {
+    const typeMap: Record<string, string> = {
       "1": "Sakit",
       "2": "Cuti Tahunan",
       "3": "Cuti Penting",
       "4": "Cuti Penangguhan",
-    }[type.trim()] as string;
-
-    const title = `${employee} - ${mappedType}`;
+    };
+    const type = typeMap[typePrompt.trim()] || "Tidak Diketahui";
 
     try {
       await addDoc(eventsCollection, {
-        title,
+        title: `${employee} - ${type}`,
         employee,
-        type: mappedType,
+        type,
         start: info.dateStr,
         end: info.dateStr,
       });
@@ -180,10 +179,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     );
   }
 
-  // 🔍 Fungsi pencarian
+  // 🔍 Pencarian pegawai & rekap jumlah libur
   function handleSearch() {
     if (!search.trim()) {
       setSummary({});
+      setTotal(0);
       return;
     }
 
@@ -194,10 +194,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
     const counts: Record<string, number> = {};
     filtered.forEach((e) => {
-      counts[e.leaveType] = (counts[e.leaveType] || 0) + 1;
+      counts[e.type] = (counts[e.type] || 0) + 1;
     });
 
+    const totalDays = Object.values(counts).reduce((a, b) => a + b, 0);
+
     setSummary(counts);
+    setTotal(totalDays);
   }
 
   return (
@@ -226,9 +229,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, opacity: 0.8 }}>
-            Role: {localStorage.getItem("role") || "viewer"}
-          </span>
+          {role === "admin" || role === "dev" ? (
+            <button
+              onClick={() => navigate("/manage-employees")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid #10b981",
+                background: "#10b981",
+                color: "#fff",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              👥 Kelola Pegawai
+            </button>
+          ) : null}
           <button
             onClick={handleLogout}
             style={{
@@ -306,11 +322,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </button>
         </div>
 
-        {/* Hasil */}
+        {/* Hasil Pencarian */}
         {Object.keys(summary).length > 0 && (
           <div style={{ marginTop: 20 }}>
             <h4 style={{ textAlign: "center", color: "#1e3a8a" }}>
-              Hasil untuk "{search}"
+              Hasil untuk “{search}”
             </h4>
             <table
               style={{
@@ -332,6 +348,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                     <td style={{ padding: 8 }}>{count}</td>
                   </tr>
                 ))}
+                <tr style={{ background: "#f3f4f6", fontWeight: "bold" }}>
+                  <td style={{ padding: 8 }}>Total Hari Libur</td>
+                  <td style={{ padding: 8 }}>{total}</td>
+                </tr>
               </tbody>
             </table>
           </div>
