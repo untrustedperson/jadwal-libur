@@ -136,6 +136,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 8,
   },
   linkText: {
+    color: "#2563eb",
     marginTop: 16,
     fontSize: 14,
   },

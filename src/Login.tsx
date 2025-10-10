@@ -139,7 +139,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
   },
   error: { color: "red", fontSize: 14, marginTop: 8 },
-  linkText: { marginTop: 16, fontSize: 14 },
+  linkText: { color: "#2563eb", marginTop: 16, fontSize: 14 },
   link: { color: "#2563eb", fontWeight: 600, textDecoration: "none" },
 };
 
