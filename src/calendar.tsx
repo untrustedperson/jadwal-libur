@@ -68,14 +68,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-  // 🔒 Logout
   async function handleLogout() {
     await signOut(auth);
     localStorage.removeItem("role");
     navigate("/login");
   }
 
-  // ➕ Simpan event baru
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -95,14 +93,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // ❌ Hapus event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // 🔍 Rekap data pegawai
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -123,83 +119,55 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
   }, [selectedEmployee, events]);
 
-  // Render event dengan tombol hapus
-  function renderEventContent(arg: any) {
-    const onDelete = async (e: any) => {
-      e.stopPropagation();
-      if (!canEdit) return;
-      if (!window.confirm(`Hapus "${arg.event.title}"?`)) return;
-      await deleteEventById(arg.event.id);
-    };
-    return (
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span>{arg.event.title}</span>
-        {canEdit && (
-          <button
-            onClick={onDelete}
-            style={{
-              background: "transparent",
-              border: "none",
-              fontSize: 16,
-              cursor: "pointer",
-            }}
-          >
-            🗑️
-          </button>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
       style={{
         minHeight: "100vh",
+        width: "100%",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
-        padding: "40px 20px",
-        boxSizing: "border-box",
+        padding: "40px 0",
         overflowX: "hidden",
       }}
     >
       <div
         style={{
-          width: "100%",
+          width: "95%",
           maxWidth: "1200px",
           background: "#fff",
-          borderRadius: 16,
-          padding: "36px 40px",
+          borderRadius: 20,
+          padding: "40px 50px",
           boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+          boxSizing: "border-box",
         }}
       >
-        {/* Header */}
+        {/* HEADER */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
-            marginBottom: 20,
+            marginBottom: 25,
           }}
         >
           <h2 style={{ color: "#1e3a8a", margin: 0 }}>
             📅 Jadwal Hari Libur — Halo, {userName}
           </h2>
-
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 10 }}>
             {(role === "admin" || role === "dev") && (
               <button
                 onClick={() => navigate("/manage-employees")}
                 style={{
                   background: "#10b981",
                   color: "#fff",
-                  padding: "8px 12px",
+                  padding: "10px 14px",
                   borderRadius: 8,
                   border: "none",
-                  cursor: "pointer",
                   fontWeight: 600,
+                  cursor: "pointer",
                 }}
               >
                 👥 Kelola Pegawai
@@ -210,11 +178,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               style={{
                 background: "#2563eb",
                 color: "#fff",
-                padding: "8px 12px",
+                padding: "10px 14px",
                 borderRadius: 8,
                 border: "none",
-                cursor: "pointer",
                 fontWeight: 600,
+                cursor: "pointer",
               }}
             >
               Logout
@@ -222,12 +190,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         </div>
 
-        {/* Calendar */}
+        {/* CALENDAR */}
         <div
           style={{
             background: "#f8fafc",
             borderRadius: 12,
-            padding: 16,
+            padding: 20,
             marginBottom: 30,
           }}
         >
@@ -240,7 +208,33 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
             }}
             events={events}
-            eventContent={renderEventContent}
+            eventContent={(arg) => (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 14,
+                }}
+              >
+                <span>{arg.event.title}</span>
+                {canEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteEventById(arg.event.id);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      fontSize: 16,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            )}
             dateClick={(info) => {
               if (canEdit) {
                 setSelectedDate(info.dateStr);
@@ -250,17 +244,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           />
         </div>
 
-        {/* Rekap Data */}
+        {/* REKAP PEGAWAI */}
         <div
           style={{
-            background: "#f1f5f9",
+            background: "#e2e8f0",
             borderRadius: 12,
-            padding: 20,
-            color: "#111827",
-            boxShadow: "inset 0 2px 6px rgba(0,0,0,0.1)",
+            padding: 24,
+            boxShadow: "inset 0 2px 8px rgba(0,0,0,0.1)",
           }}
         >
-          <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
+          <h3
+            style={{
+              textAlign: "center",
+              color: "#1e3a8a",
+              marginBottom: 12,
+            }}
+          >
             🔍 Rekap Hari Libur Pegawai
           </h3>
           <Select
@@ -270,17 +269,24 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             isSearchable
           />
           {selectedEmployee && (
-            <div style={{ marginTop: 16 }}>
-              <h4 style={{ textAlign: "center", color: "#1e3a8a" }}>
+            <div style={{ marginTop: 20 }}>
+              <h4
+                style={{
+                  textAlign: "center",
+                  color: "#1e3a8a",
+                  marginBottom: 12,
+                }}
+              >
                 📋 Data untuk {selectedEmployee}
               </h4>
               <table
                 style={{
                   width: "100%",
                   borderCollapse: "collapse",
+                  background: "#f8fafc",
                   textAlign: "center",
-                  background: "#e2e8f0",
                   borderRadius: 8,
+                  overflow: "hidden",
                 }}
               >
                 <thead>
@@ -307,7 +313,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {/* Modal Input Hari Libur */}
+      {/* MODAL INPUT */}
       {showModal && (
         <div
           style={{
@@ -335,7 +341,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
               Tambah Hari Libur
             </h3>
-
             <label>Pilih Pegawai:</label>
             <Select
               options={employees}
@@ -345,11 +350,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               placeholder="Cari pegawai..."
               isSearchable
             />
-
             <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {leaveTypes.map((t) => (
-                <label key={t} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <label key={t} style={{ display: "flex", alignItems: "center" }}>
                   <input
                     type="checkbox"
                     checked={selectedLeaveTypes.includes(t)}
@@ -359,27 +363,19 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                         : setSelectedLeaveTypes(selectedLeaveTypes.filter((x) => x !== t))
                     }
                   />
-                  {t}
+                  <span style={{ marginLeft: 6 }}>{t}</span>
                 </label>
               ))}
             </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: 20,
-                gap: 8,
-              }}
-            >
+            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 20 }}>
               <button
                 onClick={saveNewLeave}
                 style={{
                   background: "#2563eb",
                   color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
                   padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "none",
                   cursor: "pointer",
                 }}
               >
@@ -390,9 +386,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 style={{
                   background: "#9ca3af",
                   color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
                   padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "none",
                   cursor: "pointer",
                 }}
               >
