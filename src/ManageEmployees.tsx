@@ -55,64 +55,64 @@ export default function ManageEmployees() {
         width: "100%",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
         padding: "40px 16px",
         boxSizing: "border-box",
-        overflowX: "hidden", // 🧩 cegah sisa kanan
       }}
     >
+      {/* Header dan tombol kembali */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          width: "100%",
+          maxWidth: 600,
+          marginBottom: 24,
+        }}
+      >
+        <h1 style={{ color: "#fff", fontSize: "1.8rem", margin: 0 }}>👥 Kelola Pegawai</h1>
+        <button
+          onClick={() => navigate("/calendar")}
+          style={{
+            padding: "10px 16px",
+            background: "#10b981",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "background 0.2s",
+          }}
+        >
+          ← Kembali
+        </button>
+      </div>
+
+      {/* Kartu Tambah Pegawai */}
       <div
         style={{
           background: "#fff",
-          padding: "40px",
+          padding: "32px 24px",
           borderRadius: 16,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
           width: "100%",
-          maxWidth: 1000,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+          maxWidth: 600,
           display: "flex",
           flexDirection: "column",
-          gap: "24px",
-          boxSizing: "border-box",
-          overflow: "hidden",
+          alignItems: "center",
+          gap: 16,
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 10,
-          }}
-        >
-          <h1 style={{ margin: 0, color: "#1e3a8a", fontSize: "1.8rem" }}>👥 Kelola Pegawai</h1>
-          <button
-            onClick={() => navigate("/calendar")}
-            style={{
-              padding: "10px 16px",
-              background: "#10b981",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "background 0.2s",
-            }}
-          >
-            ← Kembali ke Kalender
-          </button>
-        </div>
-
-        {/* Input tambah pegawai */}
+        <h2 style={{ color: "#1e3a8a", margin: 0 }}>Tambah Pegawai</h2>
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
             gap: "12px",
-            alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "center",
             width: "100%",
           }}
         >
@@ -129,7 +129,6 @@ export default function ManageEmployees() {
               border: "1px solid #d1d5db",
               fontSize: 15,
               boxSizing: "border-box",
-              width: "100%",
             }}
           />
           <button
@@ -149,119 +148,102 @@ export default function ManageEmployees() {
             Tambah
           </button>
         </div>
+      </div>
 
-        {/* Table container */}
-        <div
+      {/* Daftar Pegawai */}
+      <div
+        style={{
+          background: "#fff",
+          padding: "24px 20px",
+          borderRadius: 16,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          width: "100%",
+          maxWidth: 800,
+          marginTop: 32,
+          overflowX: "auto",
+        }}
+      >
+        <h3 style={{ margin: "0 0 16px", color: "#1e3a8a", textAlign: "center" }}>
+          Daftar Pegawai
+        </h3>
+
+        <table
           style={{
             width: "100%",
-            overflowX: "auto", // ✅ scroll horizontal jika isi tabel panjang
-            borderRadius: 12,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+            borderCollapse: "collapse",
+            textAlign: "left",
+            borderRadius: 8,
+            overflow: "hidden",
           }}
         >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: 15,
-              borderRadius: 12,
-              overflow: "hidden",
-              tableLayout: "fixed", // cegah melebihi lebar parent
-            }}
-          >
-            <thead style={{ background: "#f3f4f6" }}>
-              <tr>
-                <th style={thStyle}>No</th>
-                <th style={thStyle}>Nama Pegawai</th>
-                <th style={thStyle}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((emp, idx) => (
-                <tr
-                  key={emp.id}
-                  style={{
-                    background: idx % 2 === 0 ? "#fff" : "#f9fafb",
-                    transition: "background 0.2s",
-                    textAlign: "center",
-                  }}
-                >
-                  <td style={tdStyle}>{idx + 1}</td>
-                  <td style={{ ...tdStyle, textAlign: "left", paddingLeft: 20 }}>
-                    {editId === emp.id ? (
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        style={{
-                          padding: "8px 10px",
-                          border: "1px solid #ccc",
-                          borderRadius: 8,
-                          width: "100%",
-                          boxSizing: "border-box",
+          <thead>
+            <tr style={{ background: "#f3f4f6" }}>
+              <th style={thStyle}>No</th>
+              <th style={thStyle}>Nama Pegawai</th>
+              <th style={thStyle}>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees.map((emp, idx) => (
+              <tr key={emp.id} style={{ background: idx % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                <td style={tdStyle}>{idx + 1}</td>
+                <td style={{ ...tdStyle, width: "60%" }}>
+                  {editId === emp.id ? (
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      style={{
+                        padding: "8px 10px",
+                        border: "1px solid #ccc",
+                        borderRadius: 8,
+                        width: "100%",
+                      }}
+                    />
+                  ) : (
+                    emp.name
+                  )}
+                </td>
+                <td style={{ ...tdStyle, textAlign: "center" }}>
+                  {editId === emp.id ? (
+                    <>
+                      <button onClick={() => handleUpdate(emp.id!)} style={btnSave}>
+                        💾 Simpan
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditId(null);
+                          setEditName("");
                         }}
-                      />
-                    ) : (
-                      emp.name
-                    )}
-                  </td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      display: "flex",
-                      gap: "8px",
-                      justifyContent: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {editId === emp.id ? (
-                      <>
-                        <button onClick={() => handleUpdate(emp.id!)} style={btnSave}>
-                          💾 Simpan
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditId(null);
-                            setEditName("");
-                          }}
-                          style={btnCancel}
-                        >
-                          ✖ Batal
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditId(emp.id!);
-                            setEditName(emp.name);
-                          }}
-                          style={btnEdit}
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button onClick={() => handleDelete(emp.id!)} style={btnDelete}>
-                          🗑️ Hapus
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        style={btnCancel}
+                      >
+                        ✖ Batal
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditId(emp.id!);
+                          setEditName(emp.name);
+                        }}
+                        style={btnEdit}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button onClick={() => handleDelete(emp.id!)} style={btnDelete}>
+                        🗑️ Hapus
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-        {/* Jika kosong */}
         {employees.length === 0 && (
-          <p
-            style={{
-              textAlign: "center",
-              color: "#6b7280",
-              fontSize: 15,
-              marginTop: 20,
-            }}
-          >
+          <p style={{ textAlign: "center", marginTop: 16, color: "#6b7280" }}>
             Belum ada pegawai.
           </p>
         )}
@@ -271,17 +253,17 @@ export default function ManageEmployees() {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: "14px 8px",
-  textAlign: "center",
+  padding: "12px 8px",
   fontWeight: 600,
   color: "#374151",
   borderBottom: "2px solid #e5e7eb",
+  textAlign: "center",
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "12px 8px",
-  color: "#1f2937",
+  padding: "10px 8px",
   borderBottom: "1px solid #e5e7eb",
+  fontSize: 14,
 };
 
 const btnEdit: React.CSSProperties = {
@@ -289,9 +271,10 @@ const btnEdit: React.CSSProperties = {
   color: "#fff",
   border: "none",
   borderRadius: 8,
-  padding: "8px 12px",
+  padding: "6px 10px",
   cursor: "pointer",
   fontWeight: 500,
+  margin: "0 4px",
 };
 
 const btnDelete: React.CSSProperties = {
@@ -299,9 +282,10 @@ const btnDelete: React.CSSProperties = {
   color: "#fff",
   border: "none",
   borderRadius: 8,
-  padding: "8px 12px",
+  padding: "6px 10px",
   cursor: "pointer",
   fontWeight: 500,
+  margin: "0 4px",
 };
 
 const btnSave: React.CSSProperties = {
@@ -309,9 +293,10 @@ const btnSave: React.CSSProperties = {
   color: "#fff",
   border: "none",
   borderRadius: 8,
-  padding: "8px 12px",
+  padding: "6px 10px",
   cursor: "pointer",
   fontWeight: 500,
+  margin: "0 4px",
 };
 
 const btnCancel: React.CSSProperties = {
@@ -319,7 +304,8 @@ const btnCancel: React.CSSProperties = {
   color: "#fff",
   border: "none",
   borderRadius: 8,
-  padding: "8px 12px",
+  padding: "6px 10px",
   cursor: "pointer",
   fontWeight: 500,
+  margin: "0 4px",
 };
