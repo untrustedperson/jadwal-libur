@@ -43,16 +43,16 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Realtime listener
+  // 🔄 Realtime event listener
   useEffect(() => {
-    const unsub = onSnapshot(eventsCollection, (snapshot) => {
+    const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
         id: d.id,
         ...(d.data() as CalendarEvent),
       }));
       setEvents(data);
     });
-    return () => unsub();
+    return () => unsubscribe();
   }, []);
 
   // 🔁 Load employees
@@ -68,12 +68,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
+  // Logout
   async function handleLogout() {
     await signOut(auth);
     localStorage.removeItem("role");
     navigate("/login");
   }
 
+  // Save new leave
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -93,12 +95,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
+  // Delete event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
+  // Rekap data
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -123,197 +127,192 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     <div
       style={{
         minHeight: "100vh",
-        width: "100%",
+        width: "100vw",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        padding: "40px 0",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        padding: "40px 16px",
+        boxSizing: "border-box",
         overflowX: "hidden",
       }}
     >
+      {/* Header */}
       <div
         style={{
-          width: "95%",
-          maxWidth: "1200px",
-          background: "#fff",
-          borderRadius: 20,
-          padding: "40px 50px",
-          boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
-          boxSizing: "border-box",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          width: "100%",
+          maxWidth: 900,
+          marginBottom: 30,
+          flexWrap: "wrap",
         }}
       >
-        {/* HEADER */}
-        <div
+        <h1
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            marginBottom: 25,
+            color: "#fff",
+            margin: 0,
+            fontSize: "1.8rem",
+            fontWeight: 700,
           }}
         >
-          <h2 style={{ color: "#1e3a8a", margin: 0 }}>
-            📅 Jadwal Hari Libur — Halo, {userName}
-          </h2>
-          <div style={{ display: "flex", gap: 10 }}>
-            {(role === "admin" || role === "dev") && (
-              <button
-                onClick={() => navigate("/manage-employees")}
-                style={{
-                  background: "#10b981",
-                  color: "#fff",
-                  padding: "10px 14px",
-                  borderRadius: 8,
-                  border: "none",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                👥 Kelola Pegawai
-              </button>
-            )}
+          📅 Jadwal Hari Libur — Halo, {userName}
+        </h1>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          {(role === "admin" || role === "dev") && (
             <button
-              onClick={handleLogout}
+              onClick={() => navigate("/manage-employees")}
               style={{
-                background: "#2563eb",
+                padding: "10px 18px",
+                background: "#10b981",
                 color: "#fff",
-                padding: "10px 14px",
-                borderRadius: 8,
                 border: "none",
+                borderRadius: 8,
                 fontWeight: 600,
                 cursor: "pointer",
               }}
             >
-              Logout
+              👥 Kelola Pegawai
             </button>
-          </div>
-        </div>
-
-        {/* CALENDAR */}
-        <div
-          style={{
-            background: "#f8fafc",
-            borderRadius: 12,
-            padding: 20,
-            marginBottom: 30,
-          }}
-        >
-          <FullCalendar
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-            headerToolbar={{
-              left: "prev,next",
-              center: "title",
-              right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
-            }}
-            events={events}
-            eventContent={(arg) => (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 14,
-                }}
-              >
-                <span>{arg.event.title}</span>
-                {canEdit && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteEventById(arg.event.id);
-                    }}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      fontSize: 16,
-                      cursor: "pointer",
-                    }}
-                  >
-                    🗑️
-                  </button>
-                )}
-              </div>
-            )}
-            dateClick={(info) => {
-              if (canEdit) {
-                setSelectedDate(info.dateStr);
-                setShowModal(true);
-              }
-            }}
-          />
-        </div>
-
-        {/* REKAP PEGAWAI */}
-        <div
-          style={{
-            background: "#e2e8f0",
-            borderRadius: 12,
-            padding: 24,
-            boxShadow: "inset 0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          <h3
+          )}
+          <button
+            onClick={handleLogout}
             style={{
-              textAlign: "center",
-              color: "#1e3a8a",
-              marginBottom: 12,
+              padding: "10px 18px",
+              background: "#2563eb",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 600,
+              cursor: "pointer",
             }}
           >
-            🔍 Rekap Hari Libur Pegawai
-          </h3>
-          <Select
-            options={employees}
-            onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
-            placeholder="Pilih nama pegawai..."
-            isSearchable
-          />
-          {selectedEmployee && (
-            <div style={{ marginTop: 20 }}>
-              <h4
-                style={{
-                  textAlign: "center",
-                  color: "#1e3a8a",
-                  marginBottom: 12,
-                }}
-              >
-                📋 Data untuk {selectedEmployee}
-              </h4>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  background: "#f8fafc",
-                  textAlign: "center",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                }}
-              >
-                <thead>
-                  <tr style={{ background: "#cbd5e1" }}>
-                    <th style={{ padding: 10 }}>Jenis Libur</th>
-                    <th style={{ padding: 10 }}>Jumlah</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(summary).map(([type, count]) => (
-                    <tr key={type}>
-                      <td style={{ padding: 8 }}>{type}</td>
-                      <td style={{ padding: 8 }}>{count}</td>
-                    </tr>
-                  ))}
-                  <tr style={{ background: "#dbeafe", fontWeight: "bold" }}>
-                    <td>Total Hari Libur</td>
-                    <td>{total}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
+            Logout
+          </button>
         </div>
       </div>
 
-      {/* MODAL INPUT */}
+      {/* Card Utama */}
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 16,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+          width: "100%",
+          maxWidth: 1000,
+          padding: "32px 24px",
+          textAlign: "center",
+          boxSizing: "border-box",
+          marginBottom: 40,
+        }}
+      >
+        {/* Calendar */}
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+          headerToolbar={{
+            left: "prev,next",
+            center: "title",
+            right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+          }}
+          events={events}
+          eventContent={(arg) => (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 14,
+              }}
+            >
+              <span>{arg.event.title}</span>
+              {canEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteEventById(arg.event.id);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    fontSize: 16,
+                    cursor: "pointer",
+                  }}
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
+          )}
+          dateClick={(info) => {
+            if (canEdit) {
+              setSelectedDate(info.dateStr);
+              setShowModal(true);
+            }
+          }}
+        />
+      </div>
+
+      {/* Card Rekap */}
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 16,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+          width: "100%",
+          maxWidth: 600,
+          padding: "28px 24px",
+          textAlign: "center",
+          boxSizing: "border-box",
+          marginBottom: 50,
+        }}
+      >
+        <h2 style={{ color: "#1e3a8a", marginBottom: 20 }}>🔍 Rekap Hari Libur Pegawai</h2>
+
+        <Select
+          options={employees}
+          onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
+          placeholder="Pilih nama pegawai..."
+          isSearchable
+        />
+
+        {selectedEmployee && (
+          <div style={{ marginTop: 20 }}>
+            <h4 style={{ color: "#1e3a8a" }}>📋 Data untuk {selectedEmployee}</h4>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                marginTop: 10,
+                background: "#f9fafb",
+              }}
+            >
+              <thead>
+                <tr style={{ background: "#e5e7eb" }}>
+                  <th style={{ padding: 8 }}>Jenis Libur</th>
+                  <th style={{ padding: 8 }}>Jumlah</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(summary).map(([type, count]) => (
+                  <tr key={type}>
+                    <td style={{ padding: 8 }}>{type}</td>
+                    <td style={{ padding: 8 }}>{count}</td>
+                  </tr>
+                ))}
+                <tr style={{ background: "#dbeafe", fontWeight: "bold" }}>
+                  <td>Total Hari Libur</td>
+                  <td>{total}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal Tambah Libur */}
       {showModal && (
         <div
           style={{
@@ -341,6 +340,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
               Tambah Hari Libur
             </h3>
+
             <label>Pilih Pegawai:</label>
             <Select
               options={employees}
@@ -350,6 +350,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               placeholder="Cari pegawai..."
               isSearchable
             />
+
             <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {leaveTypes.map((t) => (
@@ -367,6 +368,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 </label>
               ))}
             </div>
+
             <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 20 }}>
               <button
                 onClick={saveNewLeave}
