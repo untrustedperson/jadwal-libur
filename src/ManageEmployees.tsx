@@ -59,7 +59,7 @@ export default function ManageEmployees() {
         alignItems: "flex-start",
         padding: "40px 16px",
         boxSizing: "border-box",
-        overflowX: "hidden", // 🧩 Hilangkan sisa background kanan
+        overflowX: "hidden", // 🧩 cegah sisa kanan
       }}
     >
       <div
@@ -68,7 +68,7 @@ export default function ManageEmployees() {
           padding: "40px",
           borderRadius: 16,
           width: "100%",
-          maxWidth: "1000px",
+          maxWidth: 1000,
           boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
           display: "flex",
           flexDirection: "column",
@@ -105,13 +105,15 @@ export default function ManageEmployees() {
           </button>
         </div>
 
-        {/* Form Tambah */}
+        {/* Input tambah pegawai */}
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
             gap: "12px",
             alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
           }}
         >
           <input
@@ -121,12 +123,13 @@ export default function ManageEmployees() {
             onChange={(e) => setNewEmployee(e.target.value)}
             style={{
               flex: 1,
-              minWidth: "250px",
+              minWidth: 250,
               padding: "12px 16px",
               borderRadius: 10,
               border: "1px solid #d1d5db",
               fontSize: 15,
               boxSizing: "border-box",
+              width: "100%",
             }}
           />
           <button
@@ -140,16 +143,18 @@ export default function ManageEmployees() {
               cursor: "pointer",
               fontWeight: 600,
               fontSize: 15,
+              whiteSpace: "nowrap",
             }}
           >
             Tambah
           </button>
         </div>
 
-        {/* Tabel Pegawai */}
+        {/* Table container */}
         <div
           style={{
-            overflowX: "auto",
+            width: "100%",
+            overflowX: "auto", // ✅ scroll horizontal jika isi tabel panjang
             borderRadius: 12,
             boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
           }}
@@ -161,7 +166,7 @@ export default function ManageEmployees() {
               fontSize: 15,
               borderRadius: 12,
               overflow: "hidden",
-              tableLayout: "fixed", // 🧩 Supaya kolom tidak melebar keluar layar
+              tableLayout: "fixed", // cegah melebihi lebar parent
             }}
           >
             <thead style={{ background: "#f3f4f6" }}>
