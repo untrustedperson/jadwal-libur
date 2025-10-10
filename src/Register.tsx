@@ -8,28 +8,32 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
+      // 🔹 Registrasi user Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      // 🔹 Buat dokumen role baru di Firestore
+      // 🔹 Simpan role default di Firestore
       await setDoc(doc(db, "roles", uid), {
         email,
-        role: "viewer", // default role
+        role: "viewer",
       });
 
-      // 🔹 Simpan role langsung agar App.tsx tahu tanpa reload
+      // 🔹 Simpan role di localStorage agar langsung aktif
       localStorage.setItem("role", "viewer");
 
-      // 🔹 Arahkan user ke kalender
+      // 🔹 Arahkan ke kalender
       navigate("/calendar");
     } catch (err: any) {
+      console.error("Register error:", err);
       if (err.code === "auth/weak-password") {
         setError("Password minimal 6 karakter!");
       } else if (err.code === "auth/email-already-in-use") {
@@ -37,6 +41,8 @@ export default function Register() {
       } else {
         setError("Terjadi kesalahan saat mendaftar.");
       }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -62,8 +68,8 @@ export default function Register() {
             required
             style={styles.input}
           />
-          <button type="submit" style={styles.button}>
-            Daftar
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? "Memproses..." : "Daftar"}
           </button>
         </form>
 
@@ -82,14 +88,13 @@ export default function Register() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    height: "100vh",
+    minHeight: "100vh",
     width: "100vw",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "linear-gradient(135deg, #16a34a, #4ade80)",
+    background: "linear-gradient(135deg, #16a34a, #4ade80)", // tetap hijau seperti semula
     overflow: "hidden",
-    margin: 0,
     padding: "0 16px",
     boxSizing: "border-box",
   },
@@ -101,24 +106,14 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     maxWidth: 380,
     textAlign: "center",
-    boxSizing: "border-box",
   },
-  title: {
-    marginBottom: 24,
-    color: "#1e3a8a",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
+  title: { marginBottom: 24, color: "#1e3a8a" },
+  form: { display: "flex", flexDirection: "column", gap: 16 },
   input: {
     padding: "10px 14px",
     border: "1px solid #d1d5db",
     borderRadius: 8,
     fontSize: 14,
-    outline: "none",
-    width: "100%",
   },
   button: {
     padding: "10px",
@@ -128,21 +123,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#fff",
     fontWeight: 600,
     cursor: "pointer",
-    transition: "background 0.2s",
   },
-  error: {
-    color: "red",
-    fontSize: 14,
-    marginTop: 8,
-  },
-  linkText: {
-    color: "#2563eb",
-    marginTop: 16,
-    fontSize: 14,
-  },
-  link: {
-    color: "#2563eb",
-    fontWeight: 600,
-    textDecoration: "none",
-  },
+  error: { color: "red", fontSize: 14, marginTop: 8 },
+  linkText: { color: "#2563eb", marginTop: 16, fontSize: 14 },
+  link: { color: "#2563eb", fontWeight: 600, textDecoration: "none" },
 };
