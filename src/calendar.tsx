@@ -96,8 +96,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // ✏️ Edit event
-
   // ❌ Delete event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
@@ -159,17 +157,36 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   }, [selectedEmployee, events]);
 
   return (
-    <div style={{ padding: 20, width: "100%", overflowX: "hidden" }}>
+    <div
+      style={{
+        padding: "20px 0",
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        background: "#f8fafc",
+        overflowX: "hidden",
+      }}
+    >
       {/* Header */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginBottom: 16,
+          alignItems: "center",
           flexWrap: "wrap",
+          width: "100%",
+          maxWidth: 1100,
+          padding: "0 20px",
+          marginBottom: 16,
+          boxSizing: "border-box",
         }}
       >
-        <h2>📅 Jadwal Hari Libur — Halo, {userName}</h2>
+        <h2 style={{ margin: 0, fontSize: 20, color: "#1e3a8a" }}>
+          📅 Jadwal Hari Libur — Halo, {userName}
+        </h2>
+
         <div style={{ display: "flex", gap: 8 }}>
           {(role === "admin" || role === "dev") && (
             <button
@@ -181,6 +198,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 borderRadius: 8,
                 border: "none",
                 cursor: "pointer",
+                fontWeight: 600,
               }}
             >
               👥 Kelola Pegawai
@@ -195,6 +213,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               borderRadius: 8,
               border: "none",
               cursor: "pointer",
+              fontWeight: 600,
             }}
           >
             Logout
@@ -202,35 +221,47 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {/* Calendar */}
-      <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-        headerToolbar={{
-          left: "prev,next",
-          center: "title",
-          right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+      {/* Calendar Wrapper (fix layout for PC & mobile) */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 1100,
+          background: "#fff",
+          borderRadius: 12,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+          padding: 20,
+          boxSizing: "border-box",
+          marginBottom: 24,
         }}
-        events={events}
-        eventContent={renderEventContent}
-        dateClick={(info) => {
-          if (canEdit) {
-            setSelectedDate(info.dateStr);
-            setShowModal(true);
-          }
-        }}
-      />
+      >
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+          headerToolbar={{
+            left: "prev,next",
+            center: "title",
+            right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+          }}
+          events={events}
+          eventContent={renderEventContent}
+          dateClick={(info) => {
+            if (canEdit) {
+              setSelectedDate(info.dateStr);
+              setShowModal(true);
+            }
+          }}
+        />
+      </div>
 
       {/* Rekap Hari Libur Pegawai */}
       <div
         style={{
-          marginTop: 30,
           background: "#fff",
           borderRadius: 12,
           padding: 20,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          width: "100%",
           maxWidth: 500,
-          marginInline: "auto",
           color: "#111827",
         }}
       >
@@ -246,7 +277,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         {selectedEmployee && (
           <div style={{ marginTop: 20 }}>
             <h4 style={{ textAlign: "center" }}>📋 Data untuk {selectedEmployee}</h4>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                textAlign: "center",
+              }}
+            >
               <thead>
                 <tr style={{ background: "#e5e7eb" }}>
                   <th style={{ padding: 8 }}>Jenis Libur</th>
@@ -277,15 +314,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             position: "fixed",
             top: 0,
             left: 0,
-            width: "100vw",
-            height: "100vh",
+            width: "100%",
+            height: "100%",
             background: "rgba(0,0,0,0.4)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 999,
-            backdropFilter: "blur(3px)",
-            animation: "fadeIn 0.3s ease-in-out",
+            zIndex: 1000,
           }}
         >
           <div
@@ -296,7 +331,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               width: "90%",
               maxWidth: 400,
               boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-              animation: "slideUp 0.3s ease-out",
             }}
           >
             <h3 style={{ textAlign: "center", color: "#1e3a8a", marginBottom: 20 }}>
@@ -330,7 +364,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               ))}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 20, gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 20, gap: 8 }}>
               <button
                 onClick={saveNewLeave}
                 style={{
@@ -339,9 +373,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 16px",
-                  fontWeight: 600,
                   cursor: "pointer",
-                  transition: "0.2s",
+                  fontWeight: 600,
                 }}
               >
                 Simpan
@@ -354,9 +387,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 16px",
-                  fontWeight: 600,
                   cursor: "pointer",
-                  transition: "0.2s",
+                  fontWeight: 600,
                 }}
               >
                 Batal
