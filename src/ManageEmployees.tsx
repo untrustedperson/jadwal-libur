@@ -1,191 +1,134 @@
 import { useEffect, useState } from "react";
+import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebaseConfig";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
-import { signOut } from "firebase/auth";
-import { auth } from "./firebaseConfig";
 import { useNavigate } from "react-router-dom";
 
 interface Employee {
-  id: string;
+  id?: string;
   name: string;
 }
 
 export default function ManageEmployees() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [newName, setNewName] = useState("");
-  const [editId, setEditId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const employeesCollection = collection(db, "employees");
 
   useEffect(() => {
-    loadEmployees();
+    const unsub = onSnapshot(employeesCollection, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as Employee[];
+      setEmployees(data);
+    });
+    return () => unsub();
   }, []);
 
-  async function loadEmployees() {
-    const snap = await getDocs(collection(db, "employees"));
-    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Employee[];
-    setEmployees(data);
-  }
-
-  async function handleAdd() {
+  async function addEmployee() {
     if (!newName.trim()) return;
-    await addDoc(collection(db, "employees"), { name: newName });
+    await addDoc(employeesCollection, { name: newName.trim() });
     setNewName("");
-    loadEmployees();
   }
 
-  async function handleEdit(id: string, name: string) {
-    setEditId(id);
-    setNewName(name);
-  }
-
-  async function handleSaveEdit() {
-    if (!editId) return;
-    await updateDoc(doc(db, "employees", editId), { name: newName });
-    setEditId(null);
-    setNewName("");
-    loadEmployees();
-  }
-
-  async function handleDelete(id: string) {
-    if (!window.confirm("Hapus pegawai ini?")) return;
+  async function deleteEmployee(id?: string) {
+    if (!id) return;
+    const ok = confirm("Hapus pegawai ini?");
+    if (!ok) return;
     await deleteDoc(doc(db, "employees", id));
-    loadEmployees();
   }
 
-  async function handleLogout() {
-    await signOut(auth);
-    localStorage.clear();
-    navigate("/login");
+  async function editEmployee(id?: string, oldName?: string) {
+    const newName = prompt("Edit nama pegawai:", oldName);
+    if (!newName || !newName.trim()) return;
+    await updateDoc(doc(db, "employees", id!), { name: newName.trim() });
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 600,
-          margin: "0 auto",
-          background: "#fff",
-          borderRadius: 12,
-          padding: 20,
-          boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <h2>👥 Kelola Pegawai</h2>
-          <button
-            onClick={handleLogout}
+    <div style={{ padding: 20, maxWidth: 600, margin: "0 auto" }}>
+      <h2>👥 Kelola Pegawai</h2>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <input
+          type="text"
+          placeholder="Nama pegawai baru"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
+        />
+        <button
+          onClick={addEmployee}
+          style={{
+            background: "#2563eb",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 12px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Tambah
+        </button>
+      </div>
+
+      <ul style={{ listStyle: "none", padding: 0 }}>
+        {employees.map((emp) => (
+          <li
+            key={emp.id}
             style={{
-              background: "#ef4444",
-              border: "none",
-              color: "#fff",
-              borderRadius: 8,
-              padding: "6px 10px",
-              cursor: "pointer",
+              padding: 8,
+              borderBottom: "1px solid #e5e7eb",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            Logout
-          </button>
-        </div>
+            <span>{emp.name}</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => editEmployee(emp.id, emp.name)}
+                style={{
+                  background: "#10b981",
+                  border: "none",
+                  color: "#fff",
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                }}
+              >
+                ✏️
+              </button>
+              <button
+                onClick={() => deleteEmployee(emp.id)}
+                style={{
+                  background: "#ef4444",
+                  border: "none",
+                  color: "#fff",
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                }}
+              >
+                🗑️
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
 
-        {/* Input tambah/edit */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <input
-            type="text"
-            placeholder="Nama Pegawai"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-            }}
-          />
-          {editId ? (
-            <button
-              onClick={handleSaveEdit}
-              style={{
-                background: "#2563eb",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "8px 12px",
-              }}
-            >
-              Simpan
-            </button>
-          ) : (
-            <button
-              onClick={handleAdd}
-              style={{
-                background: "#16a34a",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "8px 12px",
-              }}
-            >
-              Tambah
-            </button>
-          )}
-        </div>
-
-        {/* Daftar pegawai */}
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {employees.map((emp) => (
-            <li
-              key={emp.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderBottom: "1px solid #eee",
-                padding: "8px 0",
-              }}
-            >
-              <span>{emp.name}</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => handleEdit(emp.id, emp.name)}
-                  style={{
-                    background: "#fbbf24",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "4px 8px",
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(emp.id)}
-                  style={{
-                    background: "#ef4444",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "4px 8px",
-                  }}
-                >
-                  Hapus
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <button
+        onClick={() => navigate("/calendar")}
+        style={{
+          marginTop: 20,
+          background: "#3b82f6",
+          color: "#fff",
+          border: "none",
+          padding: "8px 12px",
+          borderRadius: 8,
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        ← Kembali ke Kalender
+      </button>
     </div>
   );
 }

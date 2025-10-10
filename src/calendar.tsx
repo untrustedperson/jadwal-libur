@@ -17,20 +17,21 @@ import {
 interface CalendarEvent {
   id?: string;
   title: string;
+  employee: string;
+  leaveType: string;
   start: string;
   end?: string;
 }
 
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [employees, setEmployees] = useState<string[]>([]);
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
+  const employeesCollection = collection(db, "employees");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-
-
-
-  // 🔒 Logout
+  // Logout
   async function handleLogout() {
     try {
       await signOut(auth);
@@ -41,30 +42,57 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // 🔄 Real-time update dari Firestore
+  // 🔄 Realtime update dari Firestore
   useEffect(() => {
-    const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
+    const unsubEvents = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
         id: d.id,
-        ...(d.data() as Omit<CalendarEvent, "id">),
+        ...(d.data() as CalendarEvent),
       }));
       setEvents(data);
     });
 
-    // Bersihkan listener saat komponen di-unmount
-    return () => unsubscribe();
+    const unsubEmployees = onSnapshot(employeesCollection, (snapshot) => {
+      const list = snapshot.docs.map((d) => d.data().name as string);
+      setEmployees(list);
+    });
+
+    return () => {
+      unsubEvents();
+      unsubEmployees();
+    };
   }, []);
 
-  // ➕ CREATE
+  // ➕ CREATE EVENT
   async function handleDateClick(info: any) {
     if (!canEdit) return;
 
-    const title = window.prompt("Masukkan keterangan hari libur:");
-    if (!title || title.trim() === "") return;
+    // Nama pegawai
+    const employee = window.prompt(
+      `Pilih nama pegawai:\n${employees.join(", ")}\n(Ketik nama sesuai daftar)`
+    );
+    if (!employee || !employees.includes(employee)) {
+      alert("Nama pegawai tidak valid.");
+      return;
+    }
+
+    // Jenis cuti
+    const leaveType = window.prompt(
+      "Masukkan jenis hari libur (sakit/cuti tahunan/cuti penting/cuti penangguhan):"
+    );
+    const validTypes = ["sakit", "cuti tahunan", "cuti penting", "cuti penangguhan"];
+    if (!leaveType || !validTypes.includes(leaveType.toLowerCase())) {
+      alert("Jenis hari libur tidak valid.");
+      return;
+    }
+
+    const title = `${employee} - ${leaveType}`;
 
     try {
       await addDoc(eventsCollection, {
         title,
+        employee,
+        leaveType,
         start: info.dateStr,
         end: info.dateStr,
       });
@@ -77,10 +105,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function handleEventClick(info: any) {
     if (!canEdit) return;
 
-    const newTitle = window.prompt(
-      "Ubah nama hari libur:",
-      info.event.title
-    );
+    const newTitle = window.prompt("Ubah nama hari libur:", info.event.title);
     if (!newTitle || newTitle.trim() === "") return;
 
     try {
@@ -101,7 +126,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // 🗓️ Event Content
+  // Event Content
   function renderEventContent(arg: any) {
     const onDelete = async (
       e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>
@@ -159,7 +184,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         padding: "20px",
         width: "100vw",
         maxWidth: "100%",
-        overflowX: "hidden", // ✅ Hilangkan sisa background kanan
+        overflowX: "hidden",
         margin: "0 auto",
         boxSizing: "border-box",
       }}
@@ -174,29 +199,32 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           flexWrap: "wrap",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 20 }}>📅 Jadwal Hari Libur — Halo, {userName}</h2>
-        {(localStorage.getItem("role") === "admin" || localStorage.getItem("role") === "dev") && (
-  <button
-    onClick={() => navigate("/manage-employees")}
-    style={{
-      padding: "8px 12px",
-      borderRadius: 8,
-      border: "1px solid #16a34a",
-      background: "#22c55e",
-      color: "#fff",
-      fontWeight: 600,
-      cursor: "pointer",
-    }}
-  >
-    Kelola Pegawai
-  </button>
-)}
-
+        <h2 style={{ margin: 0, fontSize: 20 }}>
+          📅 Jadwal Hari Libur — Halo, {userName}
+        </h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 13, opacity: 0.8 }}>
             Role: {localStorage.getItem("role") || "viewer"}
           </span>
+
+          {canEdit && (
+            <button
+              onClick={() => navigate("/manage-employees")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid #059669",
+                background: "#10b981",
+                color: "#fff",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Kelola Pegawai
+            </button>
+          )}
+
           <button
             onClick={handleLogout}
             style={{
