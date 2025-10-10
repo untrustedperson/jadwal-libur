@@ -4,10 +4,11 @@ import Login from "./Login";
 import Register from "./Register";
 import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
+import ManageEmployees from "./ManageEmployees";
 import { auth, db } from "./firebaseConfig";
 import { onSnapshot, doc } from "firebase/firestore";
-import ManageEmployees from "./ManageEmployees";
 
+// ✅ Komponen PrivateRoute (proteksi berdasarkan role)
 function PrivateRoute({
   children,
   allowedRoles,
@@ -26,38 +27,47 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // ✅ Listener auth Firebase
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (!user) {
         setRole(null);
+        localStorage.removeItem("role");
         setLoading(false);
         return;
       }
 
+      // ✅ Dengarkan perubahan role realtime
       const roleRef = doc(db, "roles", user.uid);
-      const unsubRole = onSnapshot(roleRef, (docSnap) => {
+      const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
         if (docSnap.exists()) {
           const newRole = docSnap.data().role;
           const oldRole = localStorage.getItem("role");
 
           if (newRole !== oldRole) {
-            console.log("🔄 Role berubah:", oldRole, "→", newRole);
+            console.log(`🔄 Role berubah: ${oldRole || "none"} → ${newRole}`);
             localStorage.setItem("role", newRole);
             setRole(newRole);
           } else if (!oldRole) {
-            // Jika localStorage belum sempat diisi oleh Login
             localStorage.setItem("role", newRole);
             setRole(newRole);
           }
+        } else {
+          console.warn("⚠️ Role tidak ditemukan di Firestore");
+          setRole("viewer");
         }
+
         setLoading(false);
       });
 
-      return () => unsubRole();
+      // ✅ Bersihkan listener ketika auth berubah
+      return () => unsubscribeRole();
     });
 
+    // ✅ Bersihkan listener auth di unmount
     return () => unsubscribeAuth();
   }, []);
 
+  // ✅ Loading screen sederhana
   if (loading) {
     return (
       <div
@@ -68,6 +78,7 @@ export default function App() {
           alignItems: "center",
           fontSize: 18,
           color: "#2563eb",
+          fontWeight: 600,
         }}
       >
         ⏳ Memuat aplikasi...
@@ -78,21 +89,27 @@ export default function App() {
   return (
     <Router>
       <Routes>
+        {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
+        {/* Kalender */}
         <Route
           path="/calendar"
           element={<Calendar canEdit={role === "admin" || role === "dev"} />}
         />
-        <Route
-  path="/manage-employees"
-  element={
-    <PrivateRoute allowedRoles={["admin", "dev"]}>
-      <ManageEmployees />
-    </PrivateRoute>
-  }
-/>
 
+        {/* CRUD Pegawai (admin & dev) */}
+        <Route
+          path="/manage-employees"
+          element={
+            <PrivateRoute allowedRoles={["admin", "dev"]}>
+              <ManageEmployees />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Dashboard Dev */}
         <Route
           path="/dashboard"
           element={
@@ -101,6 +118,8 @@ export default function App() {
             </PrivateRoute>
           }
         />
+
+        {/* Default route */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
