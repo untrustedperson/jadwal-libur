@@ -43,7 +43,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Ambil data event realtime
+  // 🔄 Realtime event listener
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snapshot) => {
       const data = snapshot.docs.map((d) => ({
@@ -55,7 +55,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsub();
   }, []);
 
-  // 🔁 Ambil daftar pegawai
+  // 🔁 Load employees
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -79,7 +79,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
-
     try {
       await addDoc(eventsCollection, {
         title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
@@ -96,14 +95,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // ❌ Hapus event
+  // ❌ Delete
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Hapus event ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // 🔍 Rekap data pegawai
+  // 🔍 Rekap data
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -127,7 +126,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
   }, [selectedEmployee, events]);
 
-  // Render event kalender
+  // Render Event
   function renderEventContent(arg: any) {
     const onDelete = async (e: any) => {
       e.stopPropagation();
@@ -167,24 +166,23 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       style={{
         minHeight: "100vh",
         width: "100%",
+        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         justifyContent: "center",
-        alignItems: "flex-start",
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-        padding: "40px 16px",
+        alignItems: "center",
+        padding: "40px 20px",
         boxSizing: "border-box",
         overflowX: "hidden",
       }}
     >
       <div
         style={{
+          width: "100%",
+          maxWidth: "1200px",
           background: "#fff",
           borderRadius: 16,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
-          padding: "32px 28px",
-          width: "100%",
-          maxWidth: 1100,
-          margin: "0 auto",
+          padding: "36px 40px",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
           boxSizing: "border-box",
         }}
       >
@@ -194,8 +192,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 20,
             flexWrap: "wrap",
+            marginBottom: 20,
           }}
         >
           <h2 style={{ color: "#1e3a8a", margin: 0 }}>
@@ -236,13 +234,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         </div>
 
-        {/* Kalender */}
+        {/* Calendar */}
         <div
           style={{
             background: "#f8fafc",
             borderRadius: 12,
-            padding: 12,
-            marginBottom: 24,
+            padding: 16,
+            marginBottom: 30,
           }}
         >
           <FullCalendar
@@ -264,14 +262,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           />
         </div>
 
-        {/* Rekap Hari Libur */}
+        {/* Rekap Pegawai */}
         <div
           style={{
-            background: "#e5e7eb",
+            background: "#f1f5f9",
             borderRadius: 12,
             padding: 20,
             color: "#111827",
-            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
+            boxShadow: "inset 0 2px 6px rgba(0,0,0,0.1)",
           }}
         >
           <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
@@ -293,7 +291,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   width: "100%",
                   borderCollapse: "collapse",
                   textAlign: "center",
-                  background: "#f1f5f9",
+                  background: "#e2e8f0",
                   borderRadius: 8,
                 }}
               >
