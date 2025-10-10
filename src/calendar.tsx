@@ -28,8 +28,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-  const [summary, setSummary] = useState<Record<string, number>>({});
-  const [total, setTotal] = useState<number>(0);
+  const [_summary, setSummary] = useState<Record<string, number>>({});
+  const [_total, setTotal] = useState<number>(0);
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
@@ -257,82 +257,166 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       </div>
 
       {/* Rekap Card */}
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-          width: "100%",
-          maxWidth: 600,
-          padding: "28px 24px",
-          textAlign: "center",
-          marginBottom: 50,
+<div
+  style={{
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+    width: "100%",
+    maxWidth: 900,
+    padding: "28px 24px",
+    textAlign: "center",
+    marginBottom: 50,
+    position: "relative",
+    color: "#111827",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 20,
+      flexWrap: "wrap",
+      gap: 10,
+    }}
+  >
+    <h2 style={{ color: "#1e3a8a", margin: 0 }}>🔍 Rekap Hari Libur Pegawai</h2>
+
+    <div style={{ width: 250 }}>
+      <Select
+        options={[
+          { value: "all", label: "Tampilkan Semua Pegawai" },
+          ...employees,
+        ]}
+        defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
+        onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
+        placeholder="Pilih pegawai..."
+        isSearchable
+        styles={{
+          control: (base) => ({
+            ...base,
+            backgroundColor: "#f3f4f6",
+            borderColor: "#2563eb",
+            borderRadius: 8,
+            color: "#111827",
+          }),
+          singleValue: (base) => ({
+            ...base,
+            color: "#111827",
+            fontWeight: 600,
+          }),
+          placeholder: (base) => ({
+            ...base,
+            color: "#4b5563",
+          }),
+          menu: (base) => ({
+            ...base,
+            backgroundColor: "#f9fafb",
+            color: "#111827",
+            borderRadius: 8,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          }),
+          option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isFocused ? "#2563eb" : "#f9fafb",
+            color: state.isFocused ? "#fff" : "#111827",
+            cursor: "pointer",
+          }),
         }}
-      >
-        <h2 style={{ color: "#1e3a8a", marginBottom: 20 }}>🔍 Rekap Hari Libur Pegawai</h2>
+      />
+    </div>
+  </div>
 
-        <Select
-          options={employees}
-          onChange={(opt) => setSelectedEmployee(opt ? opt.value : null)}
-          placeholder="Pilih nama pegawai..."
-          isSearchable
-          styles={{
-            control: (base) => ({
-              ...base,
-              backgroundColor: "#1e293b",
-              borderColor: "#0ea5e9",
-              borderRadius: 8,
-              boxShadow: "none",
-            }),
-            singleValue: (base) => ({ ...base, color: "#f9fafb", fontWeight: 600 }),
-            menu: (base) => ({
-              ...base,
-              backgroundColor: "#0f172a",
-              color: "#f9fafb",
-              borderRadius: 8,
-            }),
-            option: (base, state) => ({
-              ...base,
-              backgroundColor: state.isFocused ? "#2563eb" : "#1e293b",
-              color: "#f9fafb",
-              cursor: "pointer",
-            }),
-          }}
-        />
+  {/* 🔢 Rekap tabel semua pegawai */}
+  <div style={{ overflowX: "auto" }}>
+    <table
+      style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        textAlign: "center",
+        background: "#f9fafb",
+      }}
+    >
+      <thead>
+        <tr style={{ background: "#e5e7eb", color: "#111827" }}>
+          <th style={{ padding: 8 }}>Nama Pegawai</th>
+          <th style={{ padding: 8 }}>Sakit</th>
+          <th style={{ padding: 8 }}>Cuti Tahunan</th>
+          <th style={{ padding: 8 }}>Cuti Penting</th>
+          <th style={{ padding: 8 }}>Cuti Penangguhan</th>
+          <th style={{ padding: 8 }}>Total Libur</th>
+        </tr>
+      </thead>
+      <tbody>
+        {(() => {
+          // Kelompokkan data pegawai
+          const grouped: Record<string, Record<string, number>> = {};
+          events.forEach((e) => {
+            const emp = e.employee || "(Tidak diketahui)";
+            if (!grouped[emp])
+              grouped[emp] = {
+                "Sakit": 0,
+                "Cuti Tahunan": 0,
+                "Cuti Penting": 0,
+                "Cuti Penangguhan": 0,
+              };
+            const types = Array.isArray(e.leaveType)
+              ? e.leaveType
+              : typeof e.leaveType === "string"
+              ? [e.leaveType]
+              : [];
+            types.forEach((t) => {
+              if (grouped[emp][t] !== undefined) grouped[emp][t]++;
+            });
+          });
 
-        {selectedEmployee && (
-          <div style={{ marginTop: 20 }}>
-            <h4 style={{ color: "#1e3a8a" }}>📋 Data untuk {selectedEmployee}</h4>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginTop: 10,
-                background: "#f9fafb",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#e5e7eb" }}>
-                  <th style={{ padding: 8 }}>Jenis Libur</th>
-                  <th style={{ padding: 8 }}>Jumlah</th>
+          // Filter jika user memilih 1 pegawai
+          const keys =
+            selectedEmployee && selectedEmployee !== "all"
+              ? Object.keys(grouped).filter((k) => k === selectedEmployee)
+              : Object.keys(grouped);
+
+          return keys.length ? (
+            keys.map((emp) => {
+              const rec = grouped[emp];
+              const total =
+                rec["Sakit"] +
+                rec["Cuti Tahunan"] +
+                rec["Cuti Penting"] +
+                rec["Cuti Penangguhan"];
+              return (
+                <tr key={emp}>
+                  <td style={{ padding: 8, fontWeight: 600 }}>{emp}</td>
+                  <td style={{ padding: 8 }}>{rec["Sakit"]}</td>
+                  <td style={{ padding: 8 }}>{rec["Cuti Tahunan"]}</td>
+                  <td style={{ padding: 8 }}>{rec["Cuti Penting"]}</td>
+                  <td style={{ padding: 8 }}>{rec["Cuti Penangguhan"]}</td>
+                  <td
+                    style={{
+                      padding: 8,
+                      fontWeight: "bold",
+                      background: "#e0e7ff",
+                    }}
+                  >
+                    {total}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {Object.entries(summary).map(([type, count]) => (
-                  <tr key={type}>
-                    <td style={{ padding: 8 }}>{type}</td>
-                    <td style={{ padding: 8 }}>{count}</td>
-                  </tr>
-                ))}
-                <tr style={{ background: "#dbeafe", fontWeight: "bold" }}>
-                  <td>Total Hari Libur</td>
-                  <td>{total}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              );
+            })
+          ) : (
+            <tr>
+              <td colSpan={6} style={{ padding: 10, color: "#6b7280" }}>
+                Tidak ada data pegawai ditemukan.
+              </td>
+            </tr>
+          );
+        })()}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 
       {/* Modal Tambah Libur */}
 {showModal && (
