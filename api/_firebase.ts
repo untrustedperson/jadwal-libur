@@ -1,29 +1,25 @@
 import admin from "firebase-admin";
 
-// Pastikan environment terisi (helper)
-export function assertEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing required environment variable: ${name}`);
-  return value;
-}
-
-// Inisialisasi Firebase Admin sekali saja
+// Pastikan hanya diinisialisasi sekali
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: assertEnv("FIREBASE_PROJECT_ID"),
-      clientEmail: assertEnv("FIREBASE_CLIENT_EMAIL"),
-      privateKey: assertEnv("FIREBASE_PRIVATE_KEY").replace(/\\n/g, "\n"),
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
     }),
   });
-  console.log("✅ Firebase Admin initialized");
 }
 
-// Instance Firestore
-const db = admin.firestore();
+export const db = admin.firestore();
 
-// Export default & named untuk kompatibilitas ESM
-export { db };
+// Fungsi keamanan agar tidak crash jika env kosong
+export function assertEnv(name: string) {
+  if (!process.env[name]) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+}
+
 export function getDb() {
   return db;
 }
