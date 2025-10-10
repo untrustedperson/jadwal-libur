@@ -175,6 +175,23 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         }}
       >
         <h2 style={{ margin: 0, fontSize: 20 }}>📅 Jadwal Hari Libur — Halo, {userName}</h2>
+        {(localStorage.getItem("role") === "admin" || localStorage.getItem("role") === "dev") && (
+  <button
+    onClick={() => navigate("/manage-employees")}
+    style={{
+      padding: "8px 12px",
+      borderRadius: 8,
+      border: "1px solid #16a34a",
+      background: "#22c55e",
+      color: "#fff",
+      fontWeight: 600,
+      cursor: "pointer",
+    }}
+  >
+    Kelola Pegawai
+  </button>
+)}
+
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 13, opacity: 0.8 }}>
