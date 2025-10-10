@@ -30,10 +30,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [total, setTotal] = useState<number>(0);
-  const [_showModal, setShowModal] = useState(false);
-  const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
-  const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>("");
 
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
@@ -42,65 +38,84 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
   // @ts-ignore
-
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
+  // 🔄 Load event realtime
   useEffect(() => {
-    const unsubscribe = onSnapshot(eventsCollection, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({
+    const unsub = onSnapshot(eventsCollection, (snap) => {
+      const data = snap.docs.map((d) => ({
         id: d.id,
         ...(d.data() as CalendarEvent),
       }));
       setEvents(data);
     });
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
+  // 🔁 Load nama pegawai
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
-      const list = snap.docs.map((d) => ({
-        value: d.data().name,
-        label: d.data().name,
-      }));
-      setEmployees(list);
+      setEmployees(
+        snap.docs.map((d) => ({
+          value: d.data().name,
+          label: d.data().name,
+        }))
+      );
     };
     loadEmployees();
   }, []);
 
+  // 🔒 Logout
   async function handleLogout() {
     await signOut(auth);
     localStorage.removeItem("role");
     navigate("/login");
   }
 
-  // @ts-ignore
-
-  async function saveNewLeave() {
-    if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
-      return alert("Lengkapi semua data!");
-    try {
-      await addDoc(eventsCollection, {
-        title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
-        employee: selectedEmployeeForAdd,
-        leaveType: selectedLeaveTypes,
-        start: selectedDate,
-        end: selectedDate,
-      });
-      setShowModal(false);
-      setSelectedLeaveTypes([]);
-      setSelectedEmployeeForAdd(null);
-    } catch (err) {
-      console.error("Gagal menambah event:", err);
-    }
-  }
-
-  async function deleteEventById(eventId: string) {
+  // ➕ Tambah event
+  async function handleDateClick(info: any) {
     if (!canEdit) return;
-    if (!window.confirm("Hapus event ini?")) return;
-    await deleteDoc(doc(db, "events", eventId));
+
+    const employee = prompt(
+      "Masukkan nama pegawai (atau pilih dari daftar):\n\n" + employees.map((e) => e.label).join(", ")
+    );
+    if (!employee || employee.trim() === "") return;
+
+    const choose = prompt(
+      "Pilih jenis hari libur (pisahkan dengan koma):\n1. Sakit\n2. Cuti Tahunan\n3. Cuti Penting\n4. Cuti Penangguhan"
+    );
+    if (!choose) return;
+
+    const map: Record<string, string> = {
+      "1": "Sakit",
+      "2": "Cuti Tahunan",
+      "3": "Cuti Penting",
+      "4": "Cuti Penangguhan",
+    };
+
+    const leaveType = choose
+      .split(",")
+      .map((x) => map[x.trim()] || "Tidak Diketahui")
+      .filter(Boolean);
+
+    await addDoc(eventsCollection, {
+      title: `${employee} - ${leaveType.join(", ")}`,
+      employee,
+      leaveType,
+      start: info.dateStr,
+      end: info.dateStr,
+    });
   }
 
+  // ❌ Hapus event
+  async function deleteEventById(id: string) {
+    if (!canEdit) return;
+    if (!window.confirm("Yakin ingin menghapus?")) return;
+    await deleteDoc(doc(db, "events", id));
+  }
+
+  // 📊 Hitung rekap otomatis
   useEffect(() => {
     if (!selectedEmployee) {
       setSummary({});
@@ -125,15 +140,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     <div
       style={{
         minHeight: "100vh",
-        width: "100%",
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+        width: "100vw",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "flex-start",
+        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         padding: "40px 16px",
         boxSizing: "border-box",
-        overflow: "hidden", // ✅ Perbaiki sisa background kanan
+        overflowX: "hidden",
       }}
     >
       {/* Header */}
@@ -148,18 +162,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           flexWrap: "wrap",
         }}
       >
-        <h1
-          style={{
-            color: "#fff",
-            margin: 0,
-            fontSize: "1.8rem",
-            fontWeight: 700,
-          }}
-        >
+        <h1 style={{ color: "#fff", fontSize: "1.8rem", fontWeight: 700, margin: 0 }}>
           📅 Jadwal Hari Libur — Halo, {userName}
         </h1>
-
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10 }}>
           {(role === "admin" || role === "dev") && (
             <button
               onClick={() => navigate("/manage-employees")}
@@ -201,9 +207,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           width: "100%",
           maxWidth: 1000,
-          padding: "32px 24px",
-          margin: "0 auto 40px",
-          overflow: "hidden",
+          padding: "28px 20px",
+          marginBottom: 40,
+          textAlign: "center",
         }}
       >
         <FullCalendar
@@ -236,27 +242,21 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               )}
             </div>
           )}
-          dateClick={(info) => {
-            if (canEdit) {
-              setSelectedDate(info.dateStr);
-              setShowModal(true);
-            }
-          }}
+          dateClick={handleDateClick}
         />
       </div>
 
       {/* Rekap Card */}
       <div
         style={{
-          background: "#f8fafc",
+          background: "#fff",
           borderRadius: 16,
           boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           width: "100%",
           maxWidth: 600,
           padding: "28px 24px",
           textAlign: "center",
-          margin: "0 auto 60px",
-          color: "#111827",
+          marginBottom: 50,
         }}
       >
         <h2 style={{ color: "#1e3a8a", marginBottom: 20 }}>🔍 Rekap Hari Libur Pegawai</h2>
@@ -269,22 +269,37 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           styles={{
             control: (base) => ({
               ...base,
-              backgroundColor: "#e2e8f0",
-              borderColor: "#2563eb",
+              backgroundColor: "#1e293b",
+              borderColor: "#0ea5e9",
               borderRadius: 8,
               padding: "2px 4px",
               boxShadow: "none",
+              "&:hover": { borderColor: "#38bdf8" },
             }),
             singleValue: (base) => ({
               ...base,
-              color: "#111827",
+              color: "#f9fafb",
               fontWeight: 600,
             }),
             menu: (base) => ({
               ...base,
-              backgroundColor: "#f1f5f9",
-              color: "#111827",
+              backgroundColor: "#0f172a",
+              color: "#f9fafb",
               borderRadius: 8,
+            }),
+            option: (base, state) => ({
+              ...base,
+              backgroundColor: state.isFocused ? "#2563eb" : "#1e293b",
+              color: "#f9fafb",
+              cursor: "pointer",
+            }),
+            placeholder: (base) => ({
+              ...base,
+              color: "#cbd5e1",
+            }),
+            input: (base) => ({
+              ...base,
+              color: "#f9fafb",
             }),
           }}
         />
