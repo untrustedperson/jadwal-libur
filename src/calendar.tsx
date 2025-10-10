@@ -11,6 +11,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
   onSnapshot,
   getDocs,
 } from "firebase/firestore";
@@ -30,8 +31,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [total, setTotal] = useState<number>(0);
-  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
+  const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
+  const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
+  const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
   const role = localStorage.getItem("role");
@@ -39,7 +44,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
   const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
-  // 🔄 Real-time load data
+  // 🔄 Realtime data event
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -71,12 +76,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // 📆 Modal input hari libur
-  const [showModal, setShowModal] = useState(false);
-  const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
-  const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>("");
-
+  // 🧩 Simpan event baru
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data sebelum menyimpan!");
@@ -97,16 +97,22 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // ✏️ UPDATE
+  // ✏️ Edit event
+  async function handleEventClick(info: any) {
+    if (!canEdit) return;
+    const newTitle = prompt("Ubah keterangan hari libur:", info.event.title);
+    if (!newTitle) return;
+    await updateDoc(doc(db, "events", info.event.id), { title: newTitle });
+  }
 
-  // ❌ DELETE
+  // ❌ Delete event
   async function deleteEventById(eventId: string) {
     if (!canEdit) return;
     if (!window.confirm("Yakin hapus data ini?")) return;
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // Render event
+  // Render event di kalender
   function renderEventContent(arg: any) {
     const onDelete = async (e: any) => {
       e.stopPropagation();
@@ -229,7 +235,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           background: "#fff",
           borderRadius: 12,
           padding: 20,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
           maxWidth: 500,
           marginInline: "auto",
           color: "#111827",
@@ -280,23 +286,29 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             left: 0,
             width: "100vw",
             height: "100vh",
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(0,0,0,0.4)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 1000,
+            zIndex: 999,
+            backdropFilter: "blur(3px)",
+            animation: "fadeIn 0.3s ease-in-out",
           }}
         >
           <div
             style={{
               background: "#fff",
-              borderRadius: 12,
+              borderRadius: 16,
               padding: 24,
               width: "90%",
               maxWidth: 400,
+              boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+              animation: "slideUp 0.3s ease-out",
             }}
           >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
+            <h3 style={{ textAlign: "center", color: "#1e3a8a", marginBottom: 20 }}>
+              Tambah Hari Libur
+            </h3>
 
             <label>Pilih Pegawai:</label>
             <Select
@@ -325,7 +337,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               ))}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 20, gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 20, gap: 10 }}>
               <button
                 onClick={saveNewLeave}
                 style={{
@@ -334,7 +346,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 16px",
+                  fontWeight: 600,
                   cursor: "pointer",
+                  transition: "0.2s",
                 }}
               >
                 Simpan
@@ -347,7 +361,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 16px",
+                  fontWeight: 600,
                   cursor: "pointer",
+                  transition: "0.2s",
                 }}
               >
                 Batal
