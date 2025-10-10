@@ -58,48 +58,60 @@ export default function ManageEmployees() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "flex-start",
-        padding: "40px 16px",
+        padding: "40px 20px",
         boxSizing: "border-box",
       }}
     >
-      {/* Header dan tombol kembali */}
+      {/* Header */}
       <div
         style={{
+          width: "100%",
+          maxWidth: 900,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          width: "100%",
-          maxWidth: 600,
-          marginBottom: 24,
+          flexWrap: "wrap",
+          marginBottom: 30,
         }}
       >
-        <h1 style={{ color: "#fff", fontSize: "1.8rem", margin: 0 }}>👥 Kelola Pegawai</h1>
+        <h1
+          style={{
+            color: "#fff",
+            fontSize: "1.8rem",
+            margin: 0,
+            fontWeight: 700,
+          }}
+        >
+          👥 Kelola Pegawai
+        </h1>
+
         <button
           onClick={() => navigate("/calendar")}
           style={{
-            padding: "10px 16px",
+            padding: "10px 18px",
             background: "#10b981",
             color: "#fff",
             border: "none",
             borderRadius: 8,
             fontWeight: 600,
             cursor: "pointer",
-            transition: "background 0.2s",
+            fontSize: 15,
           }}
         >
           ← Kembali
         </button>
       </div>
 
-      {/* Kartu Tambah Pegawai */}
+      {/* Card di tengah */}
       <div
         style={{
           background: "#fff",
-          padding: "32px 24px",
           borderRadius: 16,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
           width: "100%",
           maxWidth: 600,
+          padding: "32px 24px",
+          marginBottom: 32,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -107,6 +119,7 @@ export default function ManageEmployees() {
         }}
       >
         <h2 style={{ color: "#1e3a8a", margin: 0 }}>Tambah Pegawai</h2>
+
         <div
           style={{
             display: "flex",
@@ -123,7 +136,7 @@ export default function ManageEmployees() {
             onChange={(e) => setNewEmployee(e.target.value)}
             style={{
               flex: 1,
-              minWidth: 250,
+              minWidth: 240,
               padding: "12px 16px",
               borderRadius: 10,
               border: "1px solid #d1d5db",
@@ -134,7 +147,7 @@ export default function ManageEmployees() {
           <button
             onClick={handleAdd}
             style={{
-              padding: "12px 20px",
+              padding: "12px 22px",
               borderRadius: 10,
               background: "#2563eb",
               color: "#fff",
@@ -142,7 +155,6 @@ export default function ManageEmployees() {
               cursor: "pointer",
               fontWeight: 600,
               fontSize: 15,
-              whiteSpace: "nowrap",
             }}
           >
             Tambah
@@ -150,20 +162,25 @@ export default function ManageEmployees() {
         </div>
       </div>
 
-      {/* Daftar Pegawai */}
+      {/* Tabel daftar pegawai */}
       <div
         style={{
           background: "#fff",
-          padding: "24px 20px",
           borderRadius: 16,
           boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
           width: "100%",
-          maxWidth: 800,
-          marginTop: 32,
+          maxWidth: 900,
+          padding: "24px 20px",
           overflowX: "auto",
         }}
       >
-        <h3 style={{ margin: "0 0 16px", color: "#1e3a8a", textAlign: "center" }}>
+        <h3
+          style={{
+            marginBottom: 16,
+            color: "#1e3a8a",
+            textAlign: "center",
+          }}
+        >
           Daftar Pegawai
         </h3>
 
@@ -171,7 +188,7 @@ export default function ManageEmployees() {
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            textAlign: "left",
+            textAlign: "center",
             borderRadius: 8,
             overflow: "hidden",
           }}
@@ -204,7 +221,7 @@ export default function ManageEmployees() {
                     emp.name
                   )}
                 </td>
-                <td style={{ ...tdStyle, textAlign: "center" }}>
+                <td style={tdStyle}>
                   {editId === emp.id ? (
                     <>
                       <button onClick={() => handleUpdate(emp.id!)} style={btnSave}>
@@ -257,13 +274,13 @@ const thStyle: React.CSSProperties = {
   fontWeight: 600,
   color: "#374151",
   borderBottom: "2px solid #e5e7eb",
-  textAlign: "center",
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "10px 8px",
   borderBottom: "1px solid #e5e7eb",
   fontSize: 14,
+  textAlign: "center",
 };
 
 const btnEdit: React.CSSProperties = {
@@ -273,7 +290,6 @@ const btnEdit: React.CSSProperties = {
   borderRadius: 8,
   padding: "6px 10px",
   cursor: "pointer",
-  fontWeight: 500,
   margin: "0 4px",
 };
 
@@ -284,7 +300,6 @@ const btnDelete: React.CSSProperties = {
   borderRadius: 8,
   padding: "6px 10px",
   cursor: "pointer",
-  fontWeight: 500,
   margin: "0 4px",
 };
 
@@ -295,7 +310,6 @@ const btnSave: React.CSSProperties = {
   borderRadius: 8,
   padding: "6px 10px",
   cursor: "pointer",
-  fontWeight: 500,
   margin: "0 4px",
 };
 
@@ -306,6 +320,5 @@ const btnCancel: React.CSSProperties = {
   borderRadius: 8,
   padding: "6px 10px",
   cursor: "pointer",
-  fontWeight: 500,
   margin: "0 4px",
 };
