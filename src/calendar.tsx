@@ -18,8 +18,8 @@ import {
 interface CalendarEvent {
   id?: string;
   title: string;
-  employee: string;
-  leaveType: string[] | string;
+  employee?: string;
+  leaveType?: string[] | string;
   start: string;
   end?: string;
   backgroundColor?: string;
@@ -29,13 +29,13 @@ interface CalendarEvent {
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
-  const [showHolidays, setShowHolidays] = useState(true);
   const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>("all");
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [showHolidays, setShowHolidays] = useState(true);
 
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
@@ -43,7 +43,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // 🔄 Realtime events Firestore
+  // 🔄 Firestore realtime events
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -55,7 +55,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsub();
   }, []);
 
-  // 🔁 Load employees
+  // 👥 Load data pegawai
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -69,58 +69,49 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-  // 🇮🇩 Ambil Hari Libur Nasional (cache 30 hari)
+  // 🇮🇩 Load Hari Libur Nasional (Google Calendar API)
   useEffect(() => {
     async function fetchHolidays() {
-      const cacheKey = "cachedHolidays";
-      const cached = localStorage.getItem(cacheKey);
-
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        const diff = Date.now() - timestamp;
-        const days = diff / (1000 * 60 * 60 * 24);
-        if (days < 30 && Array.isArray(data)) {
-          setHolidays(data);
+      try {
+        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+        if (!apiKey) {
+          console.warn("⚠️ GOOGLE_API_KEY belum diatur di .env.local");
           return;
         }
-      }
 
-      try {
-        const res = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=${
-            import.meta.env.VITE_GOOGLE_API_KEY
-          }`
+        const response = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=${apiKey}`
         );
-        const data = await res.json();
+
+        const data = await response.json();
         if (!data.items) return;
-        const fetched = data.items.map((item: any) => ({
+
+        const formatted = data.items.map((item: any) => ({
           id: item.id,
           title: `🇮🇩 ${item.summary}`,
-          start: item.start.date || item.start.dateTime,
-          end: item.end?.date || item.start.date,
+          start: item.start?.date || item.start?.dateTime,
+          end: item.end?.date || item.start?.date,
           backgroundColor: "#dc2626",
-          textColor: "#fff",
+          textColor: "#ffffff",
         }));
-        setHolidays(fetched);
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({ data: fetched, timestamp: Date.now() })
-        );
-      } catch (err) {
-        console.error("Gagal memuat hari libur nasional:", err);
+
+        setHolidays(formatted);
+      } catch (error) {
+        console.error("Gagal memuat hari libur nasional:", error);
       }
     }
+
     fetchHolidays();
   }, []);
 
-  // 🔒 Logout
+  // 🚪 Logout
   async function handleLogout() {
     await signOut(auth);
     localStorage.removeItem("role");
     navigate("/login");
   }
 
-  // ➕ Tambah jadwal libur
+  // ➕ Tambah jadwal libur pegawai
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -147,7 +138,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // 🔀 Gabungkan event pegawai + libur nasional
+  // 🔀 Gabungkan data event pegawai dan libur nasional
   const displayedEvents = showHolidays ? [...events, ...holidays] : events;
 
   return (
@@ -159,11 +150,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "flex-start",
         padding: "40px 16px",
         overflowX: "hidden",
-        overflowY: "auto",
-        boxSizing: "border-box",
       }}
     >
       <div
@@ -175,7 +163,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           alignItems: "center",
         }}
       >
-        {/* Header */}
+        {/* HEADER */}
         <div
           style={{
             display: "flex",
@@ -185,30 +173,20 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             maxWidth: 1000,
             marginBottom: 30,
             flexWrap: "wrap",
-            gap: 10,
           }}
         >
           <h1
             style={{
               color: "#fff",
-              margin: 0,
               fontSize: "1.8rem",
               fontWeight: 700,
-              textAlign: "left",
-              flex: 1,
+              margin: 0,
             }}
           >
             📅 Jadwal Hari Libur — Halo, {userName}
           </h1>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              justifyContent: "flex-end",
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={{ display: "flex", gap: 10 }}>
             {(role === "admin" || role === "dev") && (
               <button
                 onClick={() => navigate("/manage-employees")}
@@ -242,7 +220,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         </div>
 
-        {/* Calendar Section */}
+        {/* CALENDAR */}
         <div
           style={{
             background: "#fff",
@@ -259,17 +237,23 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "flex-end",
-              marginBottom: 12,
+              marginBottom: 10,
             }}
           >
-            <label style={{ color: "#1e3a8a", fontWeight: 600, marginRight: 8 }}>
+            <label
+              style={{
+                color: "#1e3a8a",
+                fontWeight: 600,
+                marginRight: 10,
+              }}
+            >
               Tampilkan Libur Nasional
             </label>
             <input
               type="checkbox"
               checked={showHolidays}
               onChange={(e) => setShowHolidays(e.target.checked)}
-              style={{ width: 20, height: 20, cursor: "pointer" }}
+              style={{ width: 18, height: 18, cursor: "pointer" }}
             />
           </div>
 
@@ -322,7 +306,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           />
         </div>
 
-        {/* 🔍 Rekap Hari Libur */}
+        {/* REKAP DATA PEGAWAI */}
         <div
           style={{
             background: "#fff",
@@ -331,8 +315,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             width: "100%",
             maxWidth: 900,
             padding: "28px 24px",
-            textAlign: "center",
-            marginBottom: 50,
+            color: "#111827",
+            marginBottom: 40,
           }}
         >
           <div
@@ -344,14 +328,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               flexWrap: "wrap",
             }}
           >
-            <h2 style={{ color: "#1e3a8a", margin: 0 }}>🔍 Rekap Hari Libur Pegawai</h2>
+            <h2 style={{ color: "#1e3a8a" }}>🔍 Rekap Hari Libur Pegawai</h2>
             <div style={{ width: 250 }}>
               <Select
                 options={[{ value: "all", label: "Tampilkan Semua Pegawai" }, ...employees]}
                 defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
                 onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
-                placeholder="Pilih pegawai..."
-                isSearchable
               />
             </div>
           </div>
@@ -361,6 +343,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               width: "100%",
               borderCollapse: "collapse",
               background: "#f9fafb",
+              color: "#111827",
             }}
           >
             <thead>
@@ -404,15 +387,27 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   keys.map((emp) => {
                     const rec = grouped[emp];
                     const total =
-                      rec["Sakit"] + rec["Cuti Tahunan"] + rec["Cuti Penting"] + rec["Cuti Penangguhan"];
+                      rec["Sakit"] +
+                      rec["Cuti Tahunan"] +
+                      rec["Cuti Penting"] +
+                      rec["Cuti Penangguhan"];
                     return (
-                      <tr key={emp}>
+                      <tr key={emp} style={{ borderBottom: "1px solid #d1d5db" }}>
                         <td style={{ padding: 8, fontWeight: 600 }}>{emp}</td>
                         <td style={{ padding: 8 }}>{rec["Sakit"]}</td>
                         <td style={{ padding: 8 }}>{rec["Cuti Tahunan"]}</td>
                         <td style={{ padding: 8 }}>{rec["Cuti Penting"]}</td>
                         <td style={{ padding: 8 }}>{rec["Cuti Penangguhan"]}</td>
-                        <td style={{ padding: 8, fontWeight: "bold", background: "#e0e7ff" }}>{total}</td>
+                        <td
+                          style={{
+                            padding: 8,
+                            fontWeight: "bold",
+                            background: "#e0e7ff",
+                            color: "#1e3a8a",
+                          }}
+                        >
+                          {total}
+                        </td>
                       </tr>
                     );
                   })
@@ -429,7 +424,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {/* 🧾 Modal Tambah Hari Libur */}
+      {/* MODAL TAMBAH LIBUR */}
       {showModal && (
         <div
           style={{
@@ -455,7 +450,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               color: "#111827",
             }}
           >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
+            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
+              Tambah Hari Libur
+            </h3>
 
             <label style={{ fontWeight: 600 }}>Pilih Pegawai:</label>
             <Select
@@ -465,7 +462,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               isSearchable
             />
 
-            <label style={{ fontWeight: 600, marginTop: 12 }}>Jenis Libur:</label>
+            <label
+              style={{ marginTop: 12, display: "block", fontWeight: 600 }}
+            >
+              Jenis Libur:
+            </label>
             <Select
               isMulti
               options={[
@@ -480,7 +481,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               placeholder="Pilih jenis libur..."
             />
 
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 20, gap: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: 20,
+                gap: 8,
+              }}
+            >
               <button
                 onClick={saveNewLeave}
                 style={{
@@ -498,7 +506,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 onClick={() => setShowModal(false)}
                 style={{
                   background: "#9ca3af",
-                  color: "#000000",
+                  color: "#fff",
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 16px",
