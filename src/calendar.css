@@ -1,4 +1,4 @@
-.fc .fc-toolbar-title {
+        .fc .fc-toolbar-title {
           color: #1e3a8a !important;
           font-weight: 700 !important;
           font-size: 1.4rem !important;
@@ -9,7 +9,7 @@
         }
         .fc .fc-daygrid-day-number {
           color: #111827 !important;
-          font-weight: 500 !important;
+          font-weight: 600 !important;
         }
         .fc .fc-button {
           background: #2563eb !important;
@@ -28,3 +28,13 @@
         .fc .fc-scrollgrid {
           background-color: #ffffff !important;
         }
+        .fc-daygrid-day-frame {
+      min-height: 120px !important; /* ✅ agar tiap kolom lebih tinggi */
+    }
+      .fc-daygrid-day {
+      padding: 6px !important;
+    }
+    .fc-toolbar-title {
+      color: #1e3a8a !important;
+      font-size: 1.3rem !important;
+    }
