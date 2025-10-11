@@ -125,19 +125,30 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
   }, [selectedEmployee, events]);
 
-  return (
-      <div
-        style={{
-          minHeight: "100vh",
-          width: "100vw", // ✅ perbaikan
-          background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "40px 16px",
-          overflowX: "hidden",
+return (
+  <div
+    style={{
+      minHeight: "100vh",
+      width: "100%",
+      background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      padding: "40px 16px",
+      overflowX: "hidden",
+      boxSizing: "border-box",
+    }}
+  >
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 1200,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
       }}
-      >
+    >
       {/* Header */}
       <div
         style={{
@@ -145,27 +156,45 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           justifyContent: "space-between",
           alignItems: "center",
           width: "100%",
-          maxWidth: 900,
+          maxWidth: 1000,
           marginBottom: 30,
           flexWrap: "wrap",
+          gap: 10,
         }}
       >
-        <h1 style={{ color: "#fff", margin: 0, fontSize: "1.8rem", fontWeight: 700 }}>
+        <h1
+          style={{
+            color: "#fff",
+            margin: 0,
+            fontSize: "1.8rem",
+            fontWeight: 700,
+            textAlign: "left",
+            flex: 1,
+          }}
+        >
           📅 Jadwal Hari Libur — Halo, {userName}
         </h1>
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            justifyContent: "flex-end",
+            flexWrap: "wrap",
+          }}
+        >
           {(role === "admin" || role === "dev") && (
             <button
               onClick={() => navigate("/manage-employees")}
               style={{
                 background: "#10b981",
-                color: "#f2ebeb",
+                color: "#fff",
                 border: "none",
                 borderRadius: 8,
                 padding: "10px 18px",
                 fontWeight: 600,
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               👥 Kelola Pegawai
@@ -181,6 +210,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               padding: "10px 18px",
               fontWeight: 600,
               cursor: "pointer",
+              whiteSpace: "nowrap",
             }}
           >
             Logout
@@ -188,7 +218,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {/* Calendar */}
+      {/* Calendar Container */}
       <div
         style={{
           background: "#fff",
@@ -198,57 +228,77 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           maxWidth: 1000,
           padding: "28px 20px",
           marginBottom: 40,
-          position: "relative",
+          overflow: "hidden",
+          boxSizing: "border-box",
         }}
       >
-        <FullCalendar
-      plugins={[dayGridPlugin, interactionPlugin]}
-      initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-      headerToolbar={{
-        left: "prev,next",
-        center: "title",
-        right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
-      }}
-      events={events}
-      eventContent={(arg) => (
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 14,
+            width: "100%",
+            overflowX: "hidden",
           }}
         >
-          <span>{arg.event.title}</span>
-          {canEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteEventById(arg.event.id);
-              }}
-              style={{
-                background: "transparent",
-                border: "none",
-                fontSize: 16,
-                cursor: "pointer",
-                color: "#1e3a8a", // warna tombol lebih gelap agar terlihat
-              }}
-            >
-              🗑️
-            </button>
-          )}
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+            headerToolbar={{
+              left: "prev,next",
+              center: "title",
+              right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+            }}
+            events={events}
+            eventContent={(arg) => (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 14,
+                  alignItems: "center",
+                  color: "#111827",
+                }}
+              >
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: "85%",
+                  }}
+                >
+                  {arg.event.title}
+                </span>
+                {canEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteEventById(arg.event.id);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      fontSize: 16,
+                      cursor: "pointer",
+                      color: "#1e3a8a",
+                      flexShrink: 0,
+                    }}
+                    title="Hapus Jadwal"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            )}
+            dateClick={(info) => {
+              if (canEdit) {
+                setSelectedDate(info.dateStr);
+                setShowModal(true);
+              }
+            }}
+            contentHeight="auto"
+            height="auto"
+            themeSystem="standard"
+          />
         </div>
-      )}
-      dateClick={(info) => {
-        if (canEdit) {
-          setSelectedDate(info.dateStr);
-          setShowModal(true);
-        }
-      }}
-      contentHeight="auto"
-      height="auto"
-      themeSystem="standard"
-    />
-
       </div>
 
       {/* Rekap Card */}
@@ -564,7 +614,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     </div>
   </div>
 )}
-
+  </div>
     </div>
-  );
-}
+)};
