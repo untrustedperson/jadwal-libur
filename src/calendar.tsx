@@ -69,31 +69,33 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-  // 🇮🇩 Load Hari Libur Nasional (Google Calendar API)
-useEffect(() => {
+  useEffect(() => {
   async function fetchHolidays() {
     try {
       const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
       if (!apiKey) {
-        console.warn("⚠️ GOOGLE_API_KEY belum diatur di .env.local");
+        console.warn("GOOGLE_API_KEY tidak ditemukan");
         return;
       }
 
-      // Ambil tahun berjalan
+      const calendarId = encodeURIComponent("en.indonesian#holiday@group.v.calendar.google.com");
       const currentYear = new Date().getFullYear();
+      const timeMin = `${currentYear}-01-01T00:00:00Z`;
+      const timeMax = `${currentYear}-12-31T23:59:59Z`;
 
-      // Rentang waktu dari 1 Januari - 31 Desember tahun ini
-      const timeMin = `${currentYear - 1}-01-01T00:00:00Z`;
-      const timeMax = `${currentYear + 1}-12-31T23:59:59Z`;
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
 
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        console.error("Google Calendar API error:", resp.status, await resp.text());
+        return;
+      }
 
-      // 🔗 URL API kalender libur nasional Indonesia
-      const response = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`
-      );
-
-      const data = await response.json();
-      if (!data.items) return;
+      const data = await resp.json();
+      if (!data.items) {
+        console.warn("Tidak ada items libur nasional:", data);
+        return;
+      }
 
       const formatted = data.items.map((item: any) => ({
         id: item.id,
@@ -105,14 +107,13 @@ useEffect(() => {
       }));
 
       setHolidays(formatted);
-    } catch (error) {
-      console.error("Gagal memuat hari libur nasional:", error);
+    } catch (err) {
+      console.error("fetchHolidays error:", err);
     }
   }
 
   fetchHolidays();
 }, []);
-
 
   // 🚪 Logout
   async function handleLogout() {
