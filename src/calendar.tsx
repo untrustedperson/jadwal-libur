@@ -70,39 +70,49 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   }, []);
 
   // 🇮🇩 Load Hari Libur Nasional (Google Calendar API)
-  useEffect(() => {
-    async function fetchHolidays() {
-      try {
-        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-        if (!apiKey) {
-          console.warn("⚠️ GOOGLE_API_KEY belum diatur di .env.local");
-          return;
-        }
-
-        const response = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=${apiKey}`
-        );
-
-        const data = await response.json();
-        if (!data.items) return;
-
-        const formatted = data.items.map((item: any) => ({
-          id: item.id,
-          title: `🇮🇩 ${item.summary}`,
-          start: item.start?.date || item.start?.dateTime,
-          end: item.end?.date || item.start?.date,
-          backgroundColor: "#dc2626",
-          textColor: "#ffffff",
-        }));
-
-        setHolidays(formatted);
-      } catch (error) {
-        console.error("Gagal memuat hari libur nasional:", error);
+useEffect(() => {
+  async function fetchHolidays() {
+    try {
+      const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+      if (!apiKey) {
+        console.warn("⚠️ GOOGLE_API_KEY belum diatur di .env.local");
+        return;
       }
-    }
 
-    fetchHolidays();
-  }, []);
+      // Ambil tahun berjalan
+      const currentYear = new Date().getFullYear();
+
+      // Rentang waktu dari 1 Januari - 31 Desember tahun ini
+      const timeMin = `${currentYear - 1}-01-01T00:00:00Z`;
+      const timeMax = `${currentYear + 1}-12-31T23:59:59Z`;
+
+
+      // 🔗 URL API kalender libur nasional Indonesia
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`
+      );
+
+      const data = await response.json();
+      if (!data.items) return;
+
+      const formatted = data.items.map((item: any) => ({
+        id: item.id,
+        title: `🇮🇩 ${item.summary}`,
+        start: item.start?.date || item.start?.dateTime,
+        end: item.end?.date || item.start?.date,
+        backgroundColor: "#dc2626",
+        textColor: "#ffffff",
+      }));
+
+      setHolidays(formatted);
+    } catch (error) {
+      console.error("Gagal memuat hari libur nasional:", error);
+    }
+  }
+
+  fetchHolidays();
+}, []);
+
 
   // 🚪 Logout
   async function handleLogout() {
