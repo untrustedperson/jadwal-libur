@@ -22,6 +22,9 @@ interface CalendarEvent {
   leaveType: string[] | string;
   start: string;
   end?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  textColor?: string;
 }
 
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
@@ -33,13 +36,17 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
 
+  // 🔹 Hari libur nasional
+  const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
+  const [showHolidays, setShowHolidays] = useState(true);
+
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // 🔄 Realtime events
+  // 🔄 Realtime Firestore Events
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -51,7 +58,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsub();
   }, []);
 
-  // 🔁 Load employees
+  // 🔄 Load employees
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -63,6 +70,33 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       );
     };
     loadEmployees();
+  }, []);
+
+  // 🔄 Ambil Hari Libur Nasional dari Google Calendar API
+  useEffect(() => {
+    async function fetchHolidays() {
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=YOUR_API_KEY`
+        );
+        const data = await res.json();
+        if (!data.items) return;
+        const fetched = data.items.map((item: any) => ({
+          id: item.id,
+          title: `🇮🇩 ${item.summary}`,
+          start: item.start.date || item.start.dateTime,
+          end: item.end?.date || item.start.date,
+          backgroundColor: "#f87171",
+          borderColor: "#dc2626",
+          textColor: "#fff",
+          editable: false,
+        }));
+        setHolidays(fetched);
+      } catch (err) {
+        console.error("Gagal memuat hari libur nasional:", err);
+      }
+    }
+    fetchHolidays();
   }, []);
 
   // 🔒 Logout
@@ -99,19 +133,41 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     await deleteDoc(doc(db, "events", eventId));
   }
 
+  // 📊 Hitung rekap pegawai
+  const grouped: Record<string, Record<string, number>> = {};
+  events.forEach((e) => {
+    const emp = e.employee || "(Tidak diketahui)";
+    if (!grouped[emp])
+      grouped[emp] = {
+        "Sakit": 0,
+        "Cuti Tahunan": 0,
+        "Cuti Penting": 0,
+        "Cuti Penangguhan": 0,
+      };
+    const types = Array.isArray(e.leaveType)
+      ? e.leaveType
+      : typeof e.leaveType === "string"
+      ? [e.leaveType]
+      : [];
+    types.forEach((t) => {
+      if (grouped[emp][t] !== undefined) grouped[emp][t]++;
+    });
+  });
+
+  // 🔀 Gabungkan events dengan hari libur nasional
+  const displayedEvents = showHolidays ? [...events, ...holidays] : events;
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        width: "100vw",
+        width: "100%",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "flex-start",
         padding: "40px 16px",
         overflowX: "hidden",
-        overflowY: "auto",
         boxSizing: "border-box",
       }}
     >
@@ -134,7 +190,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             maxWidth: 1000,
             marginBottom: 30,
             flexWrap: "wrap",
-            gap: 10,
           }}
         >
           <h1
@@ -143,21 +198,12 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               margin: 0,
               fontSize: "1.8rem",
               fontWeight: 700,
-              textAlign: "left",
-              flex: 1,
             }}
           >
             📅 Jadwal Hari Libur — Halo, {userName}
           </h1>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              justifyContent: "flex-end",
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={{ display: "flex", gap: 10 }}>
             {(role === "admin" || role === "dev") && (
               <button
                 onClick={() => navigate("/manage-employees")}
@@ -169,7 +215,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   padding: "10px 18px",
                   fontWeight: 600,
                   cursor: "pointer",
-                  whiteSpace: "nowrap",
                 }}
               >
                 👥 Kelola Pegawai
@@ -185,7 +230,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 padding: "10px 18px",
                 fontWeight: 600,
                 cursor: "pointer",
-                whiteSpace: "nowrap",
               }}
             >
               Logout
@@ -193,7 +237,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         </div>
 
-        {/* Calendar */}
+        {/* Calendar Container */}
         <div
           style={{
             background: "#fff",
@@ -203,10 +247,33 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             maxWidth: 1000,
             padding: "28px 20px",
             marginBottom: 40,
-            overflow: "hidden",
-            boxSizing: "border-box",
           }}
         >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              marginBottom: 10,
+              gap: 8,
+            }}
+          >
+            <label style={{ color: "#1e3a8a", fontWeight: 600 }}>
+              Tampilkan Hari Libur Nasional
+            </label>
+            <input
+              type="checkbox"
+              checked={showHolidays}
+              onChange={(e) => setShowHolidays(e.target.checked)}
+              style={{
+                width: 20,
+                height: 20,
+                accentColor: "#2563eb",
+                cursor: "pointer",
+              }}
+            />
+          </div>
+
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
@@ -215,7 +282,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               center: "title",
               right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
             }}
-            events={events}
+            events={displayedEvents}
             eventContent={(arg) => (
               <div
                 style={{
@@ -223,20 +290,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   justifyContent: "space-between",
                   fontSize: 14,
                   alignItems: "center",
-                  color: "#111827",
                 }}
               >
-                <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: "85%",
-                  }}
-                >
-                  {arg.event.title}
-                </span>
-                {canEdit && (
+                <span>{arg.event.title}</span>
+                {canEdit && !arg.event.title.startsWith("🇮🇩") && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -248,9 +305,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                       fontSize: 16,
                       cursor: "pointer",
                       color: "#1e3a8a",
-                      flexShrink: 0,
                     }}
-                    title="Hapus Jadwal"
                   >
                     🗑️
                   </button>
@@ -265,11 +320,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             }}
             contentHeight="auto"
             height="auto"
-            themeSystem="standard"
           />
         </div>
 
-        {/* 🔍 Rekap Hari Libur Pegawai */}
+        {/* Rekap Hari Libur Pegawai */}
         <div
           style={{
             background: "#fff",
@@ -280,8 +334,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             padding: "28px 24px",
             textAlign: "center",
             marginBottom: 50,
-            position: "relative",
-            color: "#111827",
           }}
         >
           <div
@@ -295,6 +347,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             }}
           >
             <h2 style={{ color: "#1e3a8a", margin: 0 }}>🔍 Rekap Hari Libur Pegawai</h2>
+
             <div style={{ width: 250 }}>
               <Select
                 options={[
@@ -303,19 +356,17 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 ]}
                 defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
                 onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
-                placeholder="Pilih pegawai..."
-                isSearchable
               />
             </div>
           </div>
 
+          {/* Tabel rekap */}
           <div style={{ overflowX: "auto" }}>
             <table
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
                 textAlign: "center",
-                background: "#f9fafb",
               }}
             >
               <thead>
@@ -329,34 +380,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 </tr>
               </thead>
               <tbody>
-                {(() => {
-                  const grouped: Record<string, Record<string, number>> = {};
-                  events.forEach((e) => {
-                    const emp = e.employee || "(Tidak diketahui)";
-                    if (!grouped[emp])
-                      grouped[emp] = {
-                        Sakit: 0,
-                        "Cuti Tahunan": 0,
-                        "Cuti Penting": 0,
-                        "Cuti Penangguhan": 0,
-                      };
-                    const types = Array.isArray(e.leaveType)
-                      ? e.leaveType
-                      : typeof e.leaveType === "string"
-                      ? [e.leaveType]
-                      : [];
-                    types.forEach((t) => {
-                      if (grouped[emp][t] !== undefined) grouped[emp][t]++;
-                    });
-                  });
-
-                  const keys =
-                    selectedEmployee && selectedEmployee !== "all"
-                      ? Object.keys(grouped).filter((k) => k === selectedEmployee)
-                      : Object.keys(grouped);
-
-                  return keys.length ? (
-                    keys.map((emp) => {
+                {Object.keys(grouped).length > 0 ? (
+                  Object.keys(grouped)
+                    .filter((k) => selectedEmployee === "all" || k === selectedEmployee)
+                    .map((emp) => {
                       const rec = grouped[emp];
                       const total =
                         rec["Sakit"] +
@@ -370,212 +397,103 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                           <td style={{ padding: 8 }}>{rec["Cuti Tahunan"]}</td>
                           <td style={{ padding: 8 }}>{rec["Cuti Penting"]}</td>
                           <td style={{ padding: 8 }}>{rec["Cuti Penangguhan"]}</td>
-                          <td
-                            style={{
-                              padding: 8,
-                              fontWeight: "bold",
-                              background: "#e0e7ff",
-                            }}
-                          >
+                          <td style={{ padding: 8, fontWeight: "bold", background: "#e0e7ff" }}>
                             {total}
                           </td>
                         </tr>
                       );
                     })
-                  ) : (
-                    <tr>
-                      <td colSpan={6} style={{ padding: 10, color: "#6b7280" }}>
-                        Tidak ada data pegawai ditemukan.
-                      </td>
-                    </tr>
-                  );
-                })()}
+                ) : (
+                  <tr>
+                    <td colSpan={6} style={{ padding: 10, color: "#6b7280" }}>
+                      Tidak ada data pegawai ditemukan.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      {/* 🧾 Modal Tambah Hari Libur */}
+      {/* Modal Tambah Hari Libur */}
       {showModal && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 1000,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: 24,
-        width: "90%",
-        maxWidth: 400,
-        color: "#111827",
-      }}
-    >
-      <h3 style={{ textAlign: "center", color: "#1e3a8a", marginBottom: 16 }}>
-        Tambah Hari Libur
-      </h3>
-
-      <label style={{ fontWeight: 600, color: "#111827" }}>Pilih Pegawai:</label>
-      <Select
-        options={employees}
-        onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-        placeholder="Pilih nama pegawai..."
-        isSearchable
-        styles={{
-          control: (base) => ({
-            ...base,
-            backgroundColor: "#f9fafb",
-            borderColor: "#2563eb",
-            borderRadius: 8,
-            color: "#111827",
-            minHeight: "38px",
-          }),
-          singleValue: (base) => ({
-            ...base,
-            color: "#111827",
-            fontWeight: 600,
-          }),
-          placeholder: (base) => ({
-            ...base,
-            color: "#4b5563",
-          }),
-          menu: (base) => ({
-            ...base,
-            backgroundColor: "#fff",
-            color: "#111827",
-            borderRadius: 8,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          }),
-          option: (base, state) => ({
-            ...base,
-            backgroundColor: state.isFocused ? "#2563eb" : "#fff",
-            color: state.isFocused ? "#fff" : "#111827",
-            cursor: "pointer",
-          }),
-        }}
-      />
-
-      <label style={{ marginTop: 14, display: "block", fontWeight: 600, color: "#111827" }}>
-        Jenis Libur:
-      </label>
-      <Select
-        isMulti
-        options={[
-          { value: "Sakit", label: "Sakit" },
-          { value: "Cuti Tahunan", label: "Cuti Tahunan" },
-          { value: "Cuti Penting", label: "Cuti Penting" },
-          { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
-        ]}
-        onChange={(opts) =>
-          setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
-        }
-        placeholder="Pilih jenis libur..."
-        styles={{
-          control: (base) => ({
-            ...base,
-            backgroundColor: "#f9fafb",
-            borderColor: "#2563eb",
-            borderRadius: 8,
-            color: "#111827",
-            minHeight: "38px",
-          }),
-          multiValue: (base) => ({
-            ...base,
-            backgroundColor: "#e0e7ff",
-          }),
-          multiValueLabel: (base) => ({
-            ...base,
-            color: "#111827",
-            fontWeight: 600,
-          }),
-          placeholder: (base) => ({
-            ...base,
-            color: "#4b5563",
-          }),
-          menu: (base) => ({
-            ...base,
-            backgroundColor: "#fff",
-            color: "#111827",
-            borderRadius: 8,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          }),
-          option: (base, state) => ({
-            ...base,
-            backgroundColor: state.isFocused ? "#2563eb" : "#fff",
-            color: state.isFocused ? "#fff" : "#111827",
-            cursor: "pointer",
-          }),
-        }}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginTop: 20,
-          gap: 8,
-        }}
-      >
-        <button
-          onClick={saveNewLeave}
+        <div
           style={{
-            background: "#2563eb",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
           }}
         >
-          Simpan
-        </button>
-        <button
-          onClick={() => setShowModal(false)}
-          style={{
-            background: "#9ca3af",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
-          }}
-        >
-          Batal
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: 24,
+              width: "90%",
+              maxWidth: 400,
+            }}
+          >
+            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
 
-      <style>
-        {`
-          html, body, #root {
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden !important;
-            width: 100%;
-          }
-          .fc {
-            max-width: 100% !important;
-            overflow-x: hidden !important;
-          }
-          .fc-toolbar-title {
-            color: #1e3a8a !important;
-            font-weight: 700 !important;
-          }
-        `}
-      </style>
+            <label style={{ color: "#1e3a8a" }}>Pilih Pegawai:</label>
+            <Select
+              options={employees}
+              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
+              placeholder="Pilih nama pegawai..."
+            />
+
+            <label style={{ marginTop: 12, color: "#1e3a8a" }}>Jenis Libur:</label>
+            <Select
+              isMulti
+              options={[
+                { value: "Sakit", label: "Sakit" },
+                { value: "Cuti Tahunan", label: "Cuti Tahunan" },
+                { value: "Cuti Penting", label: "Cuti Penting" },
+                { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
+              ]}
+              onChange={(opts) => setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])}
+              placeholder="Pilih jenis libur..."
+            />
+
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 20, gap: 8 }}>
+              <button
+                onClick={saveNewLeave}
+                style={{
+                  background: "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                }}
+              >
+                Simpan
+              </button>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  background: "#9ca3af",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
