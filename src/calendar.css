@@ -1,18 +1,22 @@
 .fc-daygrid-day-number {
-  font-size: 28px;
-  font-weight: 600;
-  color: #00befe;
-}
+      color: #111827 !important; /* warna teks tanggal lebih gelap */
+      font-weight: 500;
+    }
 
-.fc-col-header-cell-cushion {
-  font-size: 15px;
-  font-weight: 600;
-}
+.fc-toolbar-title {
+      color: #1e3a8a !important; /* Warna biru gelap agar jelas */
+      font-weight: 700 !important;
+      font-size: 1.25rem !important;
+    }
 
-.fc-event {
-  min-height: 40px;
-  touch-action: manipulation; /* menghindari delay klik */
-}
-.fc-daygrid-day {
-  cursor: pointer;
-}
+.fc-button {
+      background: #2563eb !important; /* biru utama */
+      border: none !important;
+      color: white !important;
+      font-weight: 600 !important;
+      border-radius: 6px !important;
+    }
+
+.fc-button:hover {
+      background: #1e40af !important; /* biru sedikit lebih gelap saat hover */
+    }

@@ -568,30 +568,3 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     </div>
   );
 }
-
-<style>
-  {`
-    .fc-toolbar-title {
-      color: #1e3a8a !important; /* Warna biru gelap agar jelas */
-      font-weight: 700 !important;
-      font-size: 1.25rem !important;
-    }
-
-    .fc-button {
-      background: #2563eb !important; /* biru utama */
-      border: none !important;
-      color: white !important;
-      font-weight: 600 !important;
-      border-radius: 6px !important;
-    }
-
-    .fc-button:hover {
-      background: #1e40af !important; /* biru sedikit lebih gelap saat hover */
-    }
-
-    .fc-daygrid-day-number {
-      color: #111827 !important; /* warna teks tanggal lebih gelap */
-      font-weight: 500;
-    }
-  `}
-</style>
