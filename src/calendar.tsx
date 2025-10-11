@@ -69,43 +69,57 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-    useEffect(() => {
-    async function fetchHolidays() {
-      try {
-        const currentYear = new Date().getFullYear();
-        const url = `https://date.nager.at/api/v3/PublicHolidays/${currentYear}/ID`;
+useEffect(() => {
+  async function fetchHolidays() {
+    try {
+      const currentYear = new Date().getFullYear();
+      const countryCode = "ID"; // kode ISO untuk Indonesia
+      const url = `https://date.nager.at/api/v3/PublicHolidays/${currentYear}/${countryCode}`;
 
-        console.log("🌐 Fetching holidays from:", url);
-        const resp = await fetch(url);
-        if (!resp.ok) {
-          console.error("❌ Gagal mengambil data libur nasional:", resp.status);
-          return;
-        }
+      console.log("🌐 Fetching Nager.Date holidays from:", url);
 
-        const data = await resp.json();
-        if (!data || data.length === 0) {
-          console.warn("⚠️ Tidak ada data libur nasional ditemukan.");
-          return;
-        }
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-        const formatted = data.map((item: any) => ({
-          id: item.date,
-          title: `🇮🇩 ${item.localName}`,
-          start: item.date,
-          end: item.date,
-          backgroundColor: "#dc2626", // merah
-          textColor: "#ffffff",
-        }));
+      console.log("🔁 Response status:", resp.status);
 
-        console.log("✅ Fetched holidays:", formatted);
-        setHolidays(formatted);
-      } catch (err) {
-        console.error("⚠️ fetchHolidays error:", err);
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("❌ Error fetching Nager.Date:", resp.status, errText);
+        return;
       }
-    }
 
-    fetchHolidays();
-  }, []);
+      const data = await resp.json();
+      console.log("📦 Data from Nager:", data);
+
+      if (!Array.isArray(data) || data.length === 0) {
+        console.warn("⚠️ Data Nager kosong atau bukan array:", data);
+        return;
+      }
+
+      const formatted = data.map((item: any) => ({
+        id: item.date, // gunakan date sebagai ID
+        title: `🇮🇩 ${item.localName}`,
+        start: item.date,
+        end: item.date,
+        backgroundColor: "#dc2626",
+        textColor: "#ffffff",
+      }));
+
+      console.log("✅ Formatted holidays:", formatted);
+      setHolidays(formatted);
+    } catch (err) {
+      console.error("⚠️ fetchHolidays error:", err);
+    }
+  }
+
+  fetchHolidays();
+}, []);
+
 
   // 🚪 Logout
   async function handleLogout() {
