@@ -80,7 +80,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         return;
       }
 
-      const calendarId = "en.indonesian#holiday@group.v.calendar.google.com";
+      const calendarId = "id.indonesian#holiday@group.v.calendar.google.com";
       const currentYear = new Date().getFullYear();
       const timeMin = `${currentYear}-01-01T00:00:00Z`;
       const timeMax = `${currentYear}-12-31T23:59:59Z`;
