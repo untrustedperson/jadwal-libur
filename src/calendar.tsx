@@ -74,6 +74,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     try {
       const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
       if (!apiKey) {
+        console.log("✅ VITE_GOOGLE_API_KEY =", import.meta.env.VITE_GOOGLE_API_KEY);
         console.warn("GOOGLE_API_KEY tidak ditemukan");
         return;
       }
