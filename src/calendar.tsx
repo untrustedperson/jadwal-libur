@@ -498,7 +498,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 onClick={() => setShowModal(false)}
                 style={{
                   background: "#9ca3af",
-                  color: "#fff",
+                  color: "#000000",
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 16px",
