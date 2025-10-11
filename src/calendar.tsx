@@ -129,7 +129,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
       <div
         style={{
           minHeight: "100vh",
-          width: "100%", // ✅ perbaikan
+          width: "100vw", // ✅ perbaikan
           background: "linear-gradient(135deg, #2563eb, #60a5fa)",
           display: "flex",
           flexDirection: "column",
