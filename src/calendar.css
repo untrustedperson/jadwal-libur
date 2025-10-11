@@ -1,22 +1,40 @@
-.fc-daygrid-day-number {
-      color: #111827 !important; /* warna teks tanggal lebih gelap */
-      font-weight: 500;
-    }
-
-.fc-toolbar-title {
-      color: #1e3a8a !important; /* Warna biru gelap agar jelas */
+/* Warna teks di judul bulan/tahun */
+    .fc .fc-toolbar-title {
+      color: #1e3a8a !important;
       font-weight: 700 !important;
       font-size: 1.25rem !important;
     }
 
-.fc-button {
-      background: #2563eb !important; /* biru utama */
+    /* Tombol navigasi (prev/next, view selector) */
+    .fc .fc-button {
+      background: #2563eb !important;
       border: none !important;
-      color: white !important;
+      color: #fff !important;
       font-weight: 600 !important;
       border-radius: 6px !important;
     }
 
-.fc-button:hover {
-      background: #1e40af !important; /* biru sedikit lebih gelap saat hover */
+    .fc .fc-button:hover {
+      background: #1e40af !important;
+    }
+
+    /* Warna angka tanggal di kalender */
+    .fc .fc-daygrid-day-number {
+      color: #111827 !important;
+      font-weight: 500 !important;
+    }
+
+    /* Warna teks hari (Senin, Selasa, dst) */
+    .fc .fc-col-header-cell-cushion {
+      color: #111827 !important;
+      font-weight: 600 !important;
+    }
+
+    /* Warna background area kalender */
+    .fc-theme-standard td, .fc-theme-standard th {
+      border-color: #e5e7eb !important;
+    }
+
+    .fc .fc-scrollgrid {
+      background-color: #ffffff !important;
     }
