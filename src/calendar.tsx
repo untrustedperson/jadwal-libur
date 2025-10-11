@@ -27,7 +27,7 @@ interface CalendarEvent {
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [selectedEmployee] = useState<string | null>(null);
   const [_summary, setSummary] = useState<Record<string, number>>({});
   const [_total, setTotal] = useState<number>(0);
   const [showModal, setShowModal] = useState(false);
@@ -40,9 +40,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const employeesCollection = collection(db, "employees");
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
-
-  //@ts-ignore
-  const leaveTypes = ["Sakit", "Cuti Tahunan", "Cuti Penting", "Cuti Penangguhan"];
 
   // 🔄 Realtime events
   useEffect(() => {
@@ -125,118 +122,110 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
   }, [selectedEmployee, events]);
 
-return (
-<div
-    style={{
-      minHeight: "100vh",
-      width: "100%",
-      background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      padding: "40px 16px",
-      overflowX: "hidden",
-      boxSizing: "border-box",
-    }}
-  >
+  return (
     <div
       style={{
-        width: "100%",
-        maxWidth: 1200,
+        minHeight: "100vh",
+        width: "100%", // ✅ tidak pakai vw
+        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        justifyContent: "flex-start",
+        padding: "40px 16px",
+        overflowX: "hidden", // ✅ cegah sisa kanan
+        boxSizing: "border-box",
       }}
     >
-      {/* Header */}
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
           width: "100%",
-          maxWidth: 1000,
-          marginBottom: 30,
-          flexWrap: "wrap",
-          gap: 10,
+          maxWidth: 1200,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          overflowX: "hidden", // ✅ tambah untuk jaga-jaga
         }}
       >
-        <h1
-          style={{
-            color: "#fff",
-            margin: 0,
-            fontSize: "1.8rem",
-            fontWeight: 700,
-            textAlign: "left",
-            flex: 1,
-          }}
-        >
-          📅 Jadwal Hari Libur — Halo, {userName}
-        </h1>
-
+        {/* Header */}
         <div
           style={{
             display: "flex",
-            gap: 10,
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+            maxWidth: 1000,
+            marginBottom: 30,
             flexWrap: "wrap",
+            gap: 10,
           }}
         >
-          {(role === "admin" || role === "dev") && (
+          <h1
+            style={{
+              color: "#fff",
+              margin: 0,
+              fontSize: "1.8rem",
+              fontWeight: 700,
+              textAlign: "left",
+              flex: 1,
+            }}
+          >
+            📅 Jadwal Hari Libur — Halo, {userName}
+          </h1>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              justifyContent: "flex-end",
+              flexWrap: "wrap",
+            }}
+          >
+            {(role === "admin" || role === "dev") && (
+              <button
+                onClick={() => navigate("/manage-employees")}
+                style={{
+                  background: "#10b981",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "10px 18px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                👥 Kelola Pegawai
+              </button>
+            )}
             <button
-              onClick={() => navigate("/manage-employees")}
+              onClick={handleLogout}
               style={{
-                background: "#10b981",
+                background: "#2563eb",
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
                 padding: "10px 18px",
                 fontWeight: 600,
                 cursor: "pointer",
-                whiteSpace: "nowrap",
               }}
             >
-              👥 Kelola Pegawai
+              Logout
             </button>
-          )}
-          <button
-            onClick={handleLogout}
-            style={{
-              background: "#2563eb",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "10px 18px",
-              fontWeight: 600,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Logout
-          </button>
+          </div>
         </div>
-      </div>
 
-      {/* Calendar Container */}
-      <div
-  style={{
-    background: "#fff",
-    borderRadius: 16,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-    width: "100%",
-    maxWidth: 1000,
-    padding: "28px 20px",
-    marginBottom: 40,
-    overflow: "hidden",       
-    boxSizing: "border-box",
-  }}
->
-
+        {/* Calendar */}
         <div
           style={{
+            background: "#fff",
+            borderRadius: 16,
+            boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
             width: "100%",
-            overflowX: "hidden",
+            maxWidth: 1000,
+            padding: "28px 20px",
+            marginBottom: 40,
+            overflow: "hidden",
+            boxSizing: "border-box",
           }}
         >
           <FullCalendar
@@ -282,7 +271,6 @@ return (
                       color: "#1e3a8a",
                       flexShrink: 0,
                     }}
-                    title="Hapus Jadwal"
                   >
                     🗑️
                   </button>
@@ -297,84 +285,10 @@ return (
             }}
             contentHeight="auto"
             height="auto"
-            themeSystem="standard"
           />
         </div>
-      </div>
 
-      {/* Rekap Card */}
-<div
-  style={{
-    background: "#fff",
-    borderRadius: 16,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-    width: "100%",
-    maxWidth: 900,
-    padding: "28px 24px",
-    textAlign: "center",
-    marginBottom: 50,
-    position: "relative",
-    color: "#111827",
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 20,
-      flexWrap: "wrap",
-      gap: 10,
-    }}
-  >
-    <h2 style={{ color: "#1e3a8a", margin: 0 }}>🔍 Rekap Hari Libur Pegawai</h2>
-
-    <div style={{ width: 250 }}>
-      <Select
-        options={[
-          { value: "all", label: "Tampilkan Semua Pegawai" },
-          ...employees,
-        ]}
-        defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
-        onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
-        placeholder="Pilih pegawai..."
-        isSearchable
-        styles={{
-          control: (base) => ({
-            ...base,
-            backgroundColor: "#f3f4f6",
-            borderColor: "#2563eb",
-            borderRadius: 8,
-            color: "#111827",
-          }),
-          singleValue: (base) => ({
-            ...base,
-            color: "#111827",
-            fontWeight: 600,
-          }),
-          placeholder: (base) => ({
-            ...base,
-            color: "#4b5563",
-          }),
-          menu: (base) => ({
-            ...base,
-            backgroundColor: "#f9fafb",
-            color: "#111827",
-            borderRadius: 8,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          }),
-          option: (base, state) => ({
-            ...base,
-            backgroundColor: state.isFocused ? "#2563eb" : "#f9fafb",
-            color: state.isFocused ? "#fff" : "#111827",
-            cursor: "pointer",
-          }),
-        }}
-      />
-    </div>
-  </div>
-
-  {/* 🔢 Rekap tabel semua pegawai */}
+        {/* 🔢 Rekap tabel semua pegawai */}
   <div style={{ overflowX: "auto" }}>
     <table
       style={{
@@ -615,6 +529,6 @@ return (
     </div>
   </div>
 )}
-  </div>
-    </div>
-)};
+      </div>
+  );
+}
