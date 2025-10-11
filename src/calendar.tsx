@@ -220,18 +220,19 @@ return (
 
       {/* Calendar Container */}
       <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-          width: "100%",
-          maxWidth: 1000,
-          padding: "28px 20px",
-          marginBottom: 40,
-          overflow: "hidden",
-          boxSizing: "border-box",
-        }}
-      >
+  style={{
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+    width: "100%",
+    maxWidth: 1000,
+    padding: "28px 20px",
+    marginBottom: 40,
+    overflow: "hidden",       
+    boxSizing: "border-box",
+  }}
+>
+
         <div
           style={{
             width: "100%",
