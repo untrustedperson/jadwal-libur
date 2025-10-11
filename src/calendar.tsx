@@ -28,7 +28,7 @@ interface CalendarEvent {
 
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
+  const [_holidays, setHolidays] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>("all");
   const [showModal, setShowModal] = useState(false);
@@ -79,7 +79,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         return;
       }
 
-      const calendarId = "https://www.googleapis.com/calendar/v3/calendars/en.indonesian%23holiday%40group.v.calendar.google.com/events";
+      const calendarId = "en.indonesian#holiday@group.v.calendar.google.com";
       const currentYear = new Date().getFullYear();
       const timeMin = `${currentYear}-01-01T00:00:00Z`;
       const timeMax = `${currentYear}-12-31T23:59:59Z`;
@@ -143,16 +143,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // ❌ Hapus event
-  async function deleteEventById(eventId: string) {
-    if (!canEdit) return;
-    if (!window.confirm("Hapus event ini?")) return;
-    await deleteDoc(doc(db, "events", eventId));
-  }
-
   // 🔀 Gabungkan data event pegawai dan libur nasional
-  const displayedEvents = showHolidays ? [...events, ...holidays] : events;
-
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+ 
   return (
     <div
       style={{
@@ -271,53 +265,31 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             />
           </div>
 
-          <FullCalendar
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            headerToolbar={{
-              left: "prev,next",
-              center: "title",
-              right: "dayGridMonth,dayGridWeek",
-            }}
-            events={displayedEvents}
-            eventContent={(arg) => (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 14,
-                  color: arg.event.textColor || "#111827",
-                }}
-              >
-                <span>{arg.event.title}</span>
-                {canEdit && !arg.event.title.startsWith("🇮🇩") && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteEventById(arg.event.id);
-                    }}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      fontSize: 16,
-                      cursor: "pointer",
-                      color: "#1e3a8a",
-                    }}
-                    title="Hapus Jadwal"
-                  >
-                    🗑️
-                  </button>
-                )}
-              </div>
-            )}
-            dateClick={(info) => {
-              if (canEdit) {
-                setSelectedDate(info.dateStr);
-                setShowModal(true);
-              }
-            }}
-            height="auto"
-          />
+<FullCalendar
+  plugins={[dayGridPlugin, interactionPlugin]}
+  initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+  headerToolbar={{
+    left: "prev,next",
+    center: "title",
+    right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+  }}
+  events={events}
+  eventClick={(info) => {
+    if (!canEdit) return;
+    setSelectedEventId(info.event.id);
+    setShowDeleteModal(true);
+  }}
+  dateClick={(info) => {
+    if (canEdit) {
+      setSelectedDate(info.dateStr);
+      setShowModal(true);
+    }
+  }}
+  contentHeight="auto"
+  height="auto"
+  themeSystem="standard"
+/>
+
         </div>
 
         {/* REKAP DATA PEGAWAI */}
@@ -533,6 +505,75 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           </div>
         </div>
       )}
+      {/* 🗑️ Modal Konfirmasi Hapus Jadwal */}
+{showDeleteModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1100,
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 12,
+        padding: 24,
+        width: "90%",
+        maxWidth: 400,
+        color: "#111827",
+        textAlign: "center",
+      }}
+    >
+      <h3 style={{ color: "#1e3a8a", marginBottom: 16 }}>
+        Apakah Anda ingin menghapus jadwal ini?
+      </h3>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+        <button
+          onClick={async () => {
+            if (selectedEventId) {
+              await deleteDoc(doc(db, "events", selectedEventId));
+            }
+            setShowDeleteModal(false);
+            setSelectedEventId(null);
+          }}
+          style={{
+            background: "#dc2626",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          Ya
+        </button>
+        <button
+          onClick={() => setShowDeleteModal(false)}
+          style={{
+            background: "#9ca3af",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          Batal
+        </button>
+      </div>
     </div>
+  </div>
+)}
+    </div>    
   );
 }
