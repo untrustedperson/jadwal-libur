@@ -73,9 +73,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function fetchHolidays() {
     try {
       const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+      console.log("🔍 GOOGLE API KEY:", apiKey);
+
       if (!apiKey) {
-        console.log("✅ VITE_GOOGLE_API_KEY =", import.meta.env.VITE_GOOGLE_API_KEY);
-        console.warn("GOOGLE_API_KEY tidak ditemukan");
+        console.warn("❌ GOOGLE_API_KEY tidak ditemukan di .env");
         return;
       }
 
@@ -86,15 +87,18 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
       const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
 
+      console.log("🌐 Fetching holidays from:", url);
+
       const resp = await fetch(url);
       if (!resp.ok) {
-        console.error("Google Calendar API error:", resp.status, await resp.text());
+        const errText = await resp.text();
+        console.error("❌ Google Calendar API error:", resp.status, errText);
         return;
       }
 
       const data = await resp.json();
-      if (!data.items) {
-        console.warn("Tidak ada items libur nasional:", data);
+      if (!data.items || data.items.length === 0) {
+        console.warn("⚠️ Tidak ada data libur nasional yang diterima:", data);
         return;
       }
 
@@ -103,18 +107,20 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         title: `🇮🇩 ${item.summary}`,
         start: item.start?.date || item.start?.dateTime,
         end: item.end?.date || item.start?.date,
-        backgroundColor: "#dc2626",
+        backgroundColor: "#dc2626", // merah
         textColor: "#ffffff",
       }));
 
+      console.log("✅ Fetched holidays:", formatted);
       setHolidays(formatted);
     } catch (err) {
-      console.error("fetchHolidays error:", err);
+      console.error("⚠️ fetchHolidays error:", err);
     }
   }
 
   fetchHolidays();
 }, []);
+
 
   // 🚪 Logout
   async function handleLogout() {
@@ -275,12 +281,11 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   }}
   events={[
     ...events,
-    ...(showHolidays ? _holidays : []), // ⬅️ Gabungkan libur nasional jika diaktifkan
+    ...(showHolidays ? _holidays : []),
   ]}
   eventClick={(info) => {
     if (!canEdit) return;
-    // Hindari agar user tidak bisa menghapus libur nasional
-    if (info.event.title.startsWith("🇮🇩")) return; 
+    if (info.event.title.startsWith("🇮🇩")) return;
     setSelectedEventId(info.event.id);
     setShowDeleteModal(true);
   }}
@@ -294,7 +299,40 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   height="auto"
   themeSystem="standard"
 />
+{/* 🔹 Legenda Warna */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+    gap: 20,
+    marginTop: 16,
+    flexWrap: "wrap",
+  }}
+>
+  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div
+      style={{
+        width: 16,
+        height: 16,
+        background: "#2563eb", // biru
+        borderRadius: 4,
+      }}
+    ></div>
+    <span style={{ color: "#1e3a8a", fontWeight: 600 }}>Jadwal Pegawai</span>
+  </div>
 
+  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div
+      style={{
+        width: 16,
+        height: 16,
+        background: "#dc2626", // merah
+        borderRadius: 4,
+      }}
+    ></div>
+    <span style={{ color: "#991b1b", fontWeight: 600 }}>Libur Nasional</span>
+  </div>
+</div>
 
         </div>
 
