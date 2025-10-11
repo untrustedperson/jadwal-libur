@@ -79,7 +79,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         return;
       }
 
-      const calendarId = "en.holiday@group.v.calendar.google.com"; // 🌍 Hari libur internasional
+      const calendarId = "https://www.googleapis.com/calendar/v3/calendars/en.indonesian%23holiday%40group.v.calendar.google.com/events";
       const currentYear = new Date().getFullYear();
       const timeMin = `${currentYear}-01-01T00:00:00Z`;
       const timeMax = `${currentYear}-12-31T23:59:59Z`;
@@ -235,15 +235,15 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         {/* CALENDAR */}
         <div
           style={{
-            background: "#fff",
-            borderRadius: 16,
-            boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-            width: "100%",
-            maxWidth: 1200, // ⬅️ Tambahkan lebar lebih besar
-            padding: "32px 24px",
-            marginBottom: 50,
-            overflow: "hidden",
-            boxSizing: "border-box",
+          background: "#fff",
+          borderRadius: 16,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+          width: "100%",
+          maxWidth: 1200, // ⬅️ Tambahkan lebar lebih besar
+          padding: "32px 24px",
+          marginBottom: 50,
+          overflow: "hidden",
+          boxSizing: "border-box",
           }}
         >
           <div
