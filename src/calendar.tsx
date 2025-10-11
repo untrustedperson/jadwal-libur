@@ -160,7 +160,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               onClick={() => navigate("/manage-employees")}
               style={{
                 background: "#10b981",
-                color: "#fff",
+                color: "#f2ebeb",
                 border: "none",
                 borderRadius: 8,
                 padding: "10px 18px",
@@ -202,58 +202,53 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         }}
       >
         <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-          headerToolbar={{
-            left: "prev,next",
-            center: "title",
-            right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+      plugins={[dayGridPlugin, interactionPlugin]}
+      initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+      headerToolbar={{
+        left: "prev,next",
+        center: "title",
+        right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
+      }}
+      events={events}
+      eventContent={(arg) => (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: 14,
           }}
-          events={events}
-          eventContent={(arg) => (
-            <div
+        >
+          <span>{arg.event.title}</span>
+          {canEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteEventById(arg.event.id);
+              }}
               style={{
-                position: "relative",
-                background: "#eff6ff",
-                borderRadius: 8,
-                padding: "4px 8px",
-                overflow: "hidden",
-                textAlign: "left",
-                wordBreak: "break-word",
+                background: "transparent",
+                border: "none",
+                fontSize: 16,
+                cursor: "pointer",
+                color: "#1e3a8a", // warna tombol lebih gelap agar terlihat
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 500, color: "#1e3a8a" }}>
-                {arg.event.title}
-              </span>
-              {canEdit && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteEventById(arg.event.id);
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    right: 4,
-                    background: "transparent",
-                    border: "none",
-                    color: "#ef4444",
-                    fontSize: 16,
-                    cursor: "pointer",
-                  }}
-                >
-                  🗑️
-                </button>
-              )}
-            </div>
+              🗑️
+            </button>
           )}
-          dateClick={(info) => {
-            if (canEdit) {
-              setSelectedDate(info.dateStr);
-              setShowModal(true);
-            }
-          }}
-        />
+        </div>
+      )}
+      dateClick={(info) => {
+        if (canEdit) {
+          setSelectedDate(info.dateStr);
+          setShowModal(true);
+        }
+      }}
+      contentHeight="auto"
+      height="auto"
+      themeSystem="standard"
+    />
+
       </div>
 
       {/* Rekap Card */}
@@ -573,3 +568,30 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     </div>
   );
 }
+
+<style>
+  {`
+    .fc-toolbar-title {
+      color: #1e3a8a !important; /* Warna biru gelap agar jelas */
+      font-weight: 700 !important;
+      font-size: 1.25rem !important;
+    }
+
+    .fc-button {
+      background: #2563eb !important; /* biru utama */
+      border: none !important;
+      color: white !important;
+      font-weight: 600 !important;
+      border-radius: 6px !important;
+    }
+
+    .fc-button:hover {
+      background: #1e40af !important; /* biru sedikit lebih gelap saat hover */
+    }
+
+    .fc-daygrid-day-number {
+      color: #111827 !important; /* warna teks tanggal lebih gelap */
+      font-weight: 500;
+    }
+  `}
+</style>
