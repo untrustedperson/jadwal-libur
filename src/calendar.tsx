@@ -279,12 +279,22 @@ useEffect(() => {
     right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
   }}
   events={[
-    ...events,
-    ...(showHolidays ? _holidays : []),
+    ...events.map(e => ({
+      ...e,
+      backgroundColor: "#2563eb", // 🔹 biru untuk jadwal pegawai
+      textColor: "#ffffff",
+    })),
+    ...(showHolidays
+      ? _holidays.map(h => ({
+          ...h,
+          backgroundColor: "#dc2626", // 🔴 merah untuk libur nasional
+          textColor: "#ffffff",
+        }))
+      : []),
   ]}
   eventClick={(info) => {
     if (!canEdit) return;
-    if (info.event.title.startsWith("🇮🇩")) return;
+    if (info.event.title.startsWith("🇮🇩")) return; // ⛔ libur nasional tidak bisa dihapus
     setSelectedEventId(info.event.id);
     setShowDeleteModal(true);
   }}
@@ -298,6 +308,8 @@ useEffect(() => {
   height="auto"
   themeSystem="standard"
 />
+
+
 {/* 🔹 Legenda Warna */}
 <div
   style={{
