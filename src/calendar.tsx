@@ -398,92 +398,165 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
 
       {/* 🧾 Modal Tambah Hari Libur */}
       {showModal && (
-        <div
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1000,
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 12,
+        padding: 24,
+        width: "90%",
+        maxWidth: 400,
+        color: "#111827",
+      }}
+    >
+      <h3 style={{ textAlign: "center", color: "#1e3a8a", marginBottom: 16 }}>
+        Tambah Hari Libur
+      </h3>
+
+      <label style={{ fontWeight: 600, color: "#111827" }}>Pilih Pegawai:</label>
+      <Select
+        options={employees}
+        onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
+        placeholder="Pilih nama pegawai..."
+        isSearchable
+        styles={{
+          control: (base) => ({
+            ...base,
+            backgroundColor: "#f9fafb",
+            borderColor: "#2563eb",
+            borderRadius: 8,
+            color: "#111827",
+            minHeight: "38px",
+          }),
+          singleValue: (base) => ({
+            ...base,
+            color: "#111827",
+            fontWeight: 600,
+          }),
+          placeholder: (base) => ({
+            ...base,
+            color: "#4b5563",
+          }),
+          menu: (base) => ({
+            ...base,
+            backgroundColor: "#fff",
+            color: "#111827",
+            borderRadius: 8,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          }),
+          option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isFocused ? "#2563eb" : "#fff",
+            color: state.isFocused ? "#fff" : "#111827",
+            cursor: "pointer",
+          }),
+        }}
+      />
+
+      <label style={{ marginTop: 14, display: "block", fontWeight: 600, color: "#111827" }}>
+        Jenis Libur:
+      </label>
+      <Select
+        isMulti
+        options={[
+          { value: "Sakit", label: "Sakit" },
+          { value: "Cuti Tahunan", label: "Cuti Tahunan" },
+          { value: "Cuti Penting", label: "Cuti Penting" },
+          { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
+        ]}
+        onChange={(opts) =>
+          setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
+        }
+        placeholder="Pilih jenis libur..."
+        styles={{
+          control: (base) => ({
+            ...base,
+            backgroundColor: "#f9fafb",
+            borderColor: "#2563eb",
+            borderRadius: 8,
+            color: "#111827",
+            minHeight: "38px",
+          }),
+          multiValue: (base) => ({
+            ...base,
+            backgroundColor: "#e0e7ff",
+          }),
+          multiValueLabel: (base) => ({
+            ...base,
+            color: "#111827",
+            fontWeight: 600,
+          }),
+          placeholder: (base) => ({
+            ...base,
+            color: "#4b5563",
+          }),
+          menu: (base) => ({
+            ...base,
+            backgroundColor: "#fff",
+            color: "#111827",
+            borderRadius: 8,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          }),
+          option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isFocused ? "#2563eb" : "#fff",
+            color: state.isFocused ? "#fff" : "#111827",
+            cursor: "pointer",
+          }),
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginTop: 20,
+          gap: 8,
+        }}
+      >
+        <button
+          onClick={saveNewLeave}
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
+            background: "#2563eb",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
           }}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: 24,
-              width: "90%",
-              maxWidth: 400,
-            }}
-          >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
-
-            <label>Pilih Pegawai:</label>
-            <Select
-              options={employees}
-              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-              placeholder="Pilih nama pegawai..."
-              isSearchable
-            />
-
-            <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
-            <Select
-              isMulti
-              options={[
-                { value: "Sakit", label: "Sakit" },
-                { value: "Cuti Tahunan", label: "Cuti Tahunan" },
-                { value: "Cuti Penting", label: "Cuti Penting" },
-                { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
-              ]}
-              onChange={(opts) =>
-                setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
-              }
-              placeholder="Pilih jenis libur..."
-            />
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: 20,
-                gap: 8,
-              }}
-            >
-              <button
-                onClick={saveNewLeave}
-                style={{
-                  background: "#2563eb",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                }}
-              >
-                Simpan
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  background: "#9ca3af",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                }}
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          Simpan
+        </button>
+        <button
+          onClick={() => setShowModal(false)}
+          style={{
+            background: "#9ca3af",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
+          }}
+        >
+          Batal
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <style>
         {`
