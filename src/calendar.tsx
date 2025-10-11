@@ -126,7 +126,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   }, [selectedEmployee, events]);
 
 return (
-  <div
+<div
     style={{
       minHeight: "100vh",
       width: "100%",

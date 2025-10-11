@@ -30,6 +30,9 @@ body {
   min-height: 100vh;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* ✅ Cegah sisa background kanan */
 }
 
 h1 {
