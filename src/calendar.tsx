@@ -27,9 +27,7 @@ interface CalendarEvent {
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
-  const [selectedEmployee] = useState<string | null>(null);
-  const [_summary, setSummary] = useState<Record<string, number>>({});
-  const [_total, setTotal] = useState<number>(0);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>("all");
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
@@ -101,39 +99,19 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     await deleteDoc(doc(db, "events", eventId));
   }
 
-  // 📊 Rekap data
-  useEffect(() => {
-    if (!selectedEmployee) {
-      setSummary({});
-      setTotal(0);
-      return;
-    }
-    const filtered = events.filter((e) => e.employee === selectedEmployee);
-    const counts: Record<string, number> = {};
-    filtered.forEach((e) => {
-      const types = Array.isArray(e.leaveType)
-        ? e.leaveType
-        : typeof e.leaveType === "string"
-        ? [e.leaveType]
-        : [];
-      types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
-    });
-    setSummary(counts);
-    setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
-  }, [selectedEmployee, events]);
-
   return (
     <div
       style={{
         minHeight: "100vh",
-        width: "100%", // ✅ tidak pakai vw
+        width: "100vw",
         background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "flex-start",
         padding: "40px 16px",
-        overflowX: "hidden", // ✅ cegah sisa kanan
+        overflowX: "hidden",
+        overflowY: "auto",
         boxSizing: "border-box",
       }}
     >
@@ -144,7 +122,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          overflowX: "hidden", // ✅ tambah untuk jaga-jaga
         }}
       >
         {/* Header */}
@@ -192,6 +169,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                   padding: "10px 18px",
                   fontWeight: 600,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
                 👥 Kelola Pegawai
@@ -207,6 +185,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 padding: "10px 18px",
                 fontWeight: 600,
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               Logout
@@ -271,6 +250,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                       color: "#1e3a8a",
                       flexShrink: 0,
                     }}
+                    title="Hapus Jadwal"
                   >
                     🗑️
                   </button>
@@ -285,250 +265,244 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             }}
             contentHeight="auto"
             height="auto"
+            themeSystem="standard"
           />
         </div>
 
-        {/* 🔢 Rekap tabel semua pegawai */}
-  <div style={{ overflowX: "auto" }}>
-    <table
-      style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        textAlign: "center",
-        background: "#f9fafb",
-      }}
-    >
-      <thead>
-        <tr style={{ background: "#e5e7eb", color: "#111827" }}>
-          <th style={{ padding: 8 }}>Nama Pegawai</th>
-          <th style={{ padding: 8 }}>Sakit</th>
-          <th style={{ padding: 8 }}>Cuti Tahunan</th>
-          <th style={{ padding: 8 }}>Cuti Penting</th>
-          <th style={{ padding: 8 }}>Cuti Penangguhan</th>
-          <th style={{ padding: 8 }}>Total Libur</th>
-        </tr>
-      </thead>
-      <tbody>
-        {(() => {
-          // Kelompokkan data pegawai
-          const grouped: Record<string, Record<string, number>> = {};
-          events.forEach((e) => {
-            const emp = e.employee || "(Tidak diketahui)";
-            if (!grouped[emp])
-              grouped[emp] = {
-                "Sakit": 0,
-                "Cuti Tahunan": 0,
-                "Cuti Penting": 0,
-                "Cuti Penangguhan": 0,
-              };
-            const types = Array.isArray(e.leaveType)
-              ? e.leaveType
-              : typeof e.leaveType === "string"
-              ? [e.leaveType]
-              : [];
-            types.forEach((t) => {
-              if (grouped[emp][t] !== undefined) grouped[emp][t]++;
-            });
-          });
+        {/* 🔍 Rekap Hari Libur Pegawai */}
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 16,
+            boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+            width: "100%",
+            maxWidth: 900,
+            padding: "28px 24px",
+            textAlign: "center",
+            marginBottom: 50,
+            position: "relative",
+            color: "#111827",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 20,
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            <h2 style={{ color: "#1e3a8a", margin: 0 }}>🔍 Rekap Hari Libur Pegawai</h2>
+            <div style={{ width: 250 }}>
+              <Select
+                options={[
+                  { value: "all", label: "Tampilkan Semua Pegawai" },
+                  ...employees,
+                ]}
+                defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
+                onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
+                placeholder="Pilih pegawai..."
+                isSearchable
+              />
+            </div>
+          </div>
 
-          // Filter jika user memilih 1 pegawai
-          const keys =
-            selectedEmployee && selectedEmployee !== "all"
-              ? Object.keys(grouped).filter((k) => k === selectedEmployee)
-              : Object.keys(grouped);
-
-          return keys.length ? (
-            keys.map((emp) => {
-              const rec = grouped[emp];
-              const total =
-                rec["Sakit"] +
-                rec["Cuti Tahunan"] +
-                rec["Cuti Penting"] +
-                rec["Cuti Penangguhan"];
-              return (
-                <tr key={emp}>
-                  <td style={{ padding: 8, fontWeight: 600 }}>{emp}</td>
-                  <td style={{ padding: 8 }}>{rec["Sakit"]}</td>
-                  <td style={{ padding: 8 }}>{rec["Cuti Tahunan"]}</td>
-                  <td style={{ padding: 8 }}>{rec["Cuti Penting"]}</td>
-                  <td style={{ padding: 8 }}>{rec["Cuti Penangguhan"]}</td>
-                  <td
-                    style={{
-                      padding: 8,
-                      fontWeight: "bold",
-                      background: "#e0e7ff",
-                    }}
-                  >
-                    {total}
-                  </td>
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                textAlign: "center",
+                background: "#f9fafb",
+              }}
+            >
+              <thead>
+                <tr style={{ background: "#e5e7eb", color: "#111827" }}>
+                  <th style={{ padding: 8 }}>Nama Pegawai</th>
+                  <th style={{ padding: 8 }}>Sakit</th>
+                  <th style={{ padding: 8 }}>Cuti Tahunan</th>
+                  <th style={{ padding: 8 }}>Cuti Penting</th>
+                  <th style={{ padding: 8 }}>Cuti Penangguhan</th>
+                  <th style={{ padding: 8 }}>Total Libur</th>
                 </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan={6} style={{ padding: 10, color: "#6b7280" }}>
-                Tidak ada data pegawai ditemukan.
-              </td>
-            </tr>
-          );
-        })()}
-      </tbody>
-    </table>
-  </div>
-</div>
+              </thead>
+              <tbody>
+                {(() => {
+                  const grouped: Record<string, Record<string, number>> = {};
+                  events.forEach((e) => {
+                    const emp = e.employee || "(Tidak diketahui)";
+                    if (!grouped[emp])
+                      grouped[emp] = {
+                        Sakit: 0,
+                        "Cuti Tahunan": 0,
+                        "Cuti Penting": 0,
+                        "Cuti Penangguhan": 0,
+                      };
+                    const types = Array.isArray(e.leaveType)
+                      ? e.leaveType
+                      : typeof e.leaveType === "string"
+                      ? [e.leaveType]
+                      : [];
+                    types.forEach((t) => {
+                      if (grouped[emp][t] !== undefined) grouped[emp][t]++;
+                    });
+                  });
 
+                  const keys =
+                    selectedEmployee && selectedEmployee !== "all"
+                      ? Object.keys(grouped).filter((k) => k === selectedEmployee)
+                      : Object.keys(grouped);
 
-      {/* Modal Tambah Libur */}
-{showModal && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 1000,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: 24,
-        width: "90%",
-        maxWidth: 400,
-      }}
-    >
-      <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
-        Tambah Hari Libur
-      </h3>
-
-      <label>Pilih Pegawai:</label>
-      <Select
-        options={employees}
-        onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-        placeholder="Pilih nama pegawai..."
-        isSearchable
-        styles={{
-          control: (base) => ({
-            ...base,
-            backgroundColor: "#f9fafb",
-            borderColor: "#2563eb",
-            borderRadius: 8,
-            color: "#111827",
-          }),
-          singleValue: (base) => ({
-            ...base,
-            color: "#111827",
-            fontWeight: 600,
-          }),
-          placeholder: (base) => ({
-            ...base,
-            color: "#4b5563",
-          }),
-          menu: (base) => ({
-            ...base,
-            backgroundColor: "#f3f4f6",
-            color: "#111827",
-          }),
-          option: (base, state) => ({
-            ...base,
-            backgroundColor: state.isFocused ? "#2563eb" : "#f3f4f6",
-            color: state.isFocused ? "#fff" : "#111827",
-            cursor: "pointer",
-          }),
-        }}
-      />
-
-      <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
-      <Select
-        isMulti
-        options={[
-          { value: "Sakit", label: "Sakit" },
-          { value: "Cuti Tahunan", label: "Cuti Tahunan" },
-          { value: "Cuti Penting", label: "Cuti Penting" },
-          { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
-        ]}
-        onChange={(opts) =>
-          setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
-        }
-        placeholder="Pilih jenis libur..."
-        styles={{
-          control: (base) => ({
-            ...base,
-            backgroundColor: "#f9fafb",
-            borderColor: "#2563eb",
-            borderRadius: 8,
-            color: "#111827",
-          }),
-          multiValue: (base) => ({
-            ...base,
-            backgroundColor: "#e0e7ff",
-          }),
-          multiValueLabel: (base) => ({
-            ...base,
-            color: "#111827",
-            fontWeight: 600,
-          }),
-          placeholder: (base) => ({
-            ...base,
-            color: "#4b5563",
-          }),
-          menu: (base) => ({
-            ...base,
-            backgroundColor: "#f3f4f6",
-            color: "#111827",
-          }),
-          option: (base, state) => ({
-            ...base,
-            backgroundColor: state.isFocused ? "#2563eb" : "#f3f4f6",
-            color: state.isFocused ? "#fff" : "#111827",
-          }),
-        }}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginTop: 20,
-          gap: 8,
-        }}
-      >
-        <button
-          onClick={saveNewLeave}
-          style={{
-            background: "#2563eb",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
-          }}
-        >
-          Simpan
-        </button>
-        <button
-          onClick={() => setShowModal(false)}
-          style={{
-            background: "#9ca3af",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
-          }}
-        >
-          Batal
-        </button>
+                  return keys.length ? (
+                    keys.map((emp) => {
+                      const rec = grouped[emp];
+                      const total =
+                        rec["Sakit"] +
+                        rec["Cuti Tahunan"] +
+                        rec["Cuti Penting"] +
+                        rec["Cuti Penangguhan"];
+                      return (
+                        <tr key={emp}>
+                          <td style={{ padding: 8, fontWeight: 600 }}>{emp}</td>
+                          <td style={{ padding: 8 }}>{rec["Sakit"]}</td>
+                          <td style={{ padding: 8 }}>{rec["Cuti Tahunan"]}</td>
+                          <td style={{ padding: 8 }}>{rec["Cuti Penting"]}</td>
+                          <td style={{ padding: 8 }}>{rec["Cuti Penangguhan"]}</td>
+                          <td
+                            style={{
+                              padding: 8,
+                              fontWeight: "bold",
+                              background: "#e0e7ff",
+                            }}
+                          >
+                            {total}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} style={{ padding: 10, color: "#6b7280" }}>
+                        Tidak ada data pegawai ditemukan.
+                      </td>
+                    </tr>
+                  );
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
+
+      {/* 🧾 Modal Tambah Hari Libur */}
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: 24,
+              width: "90%",
+              maxWidth: 400,
+            }}
+          >
+            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
+
+            <label>Pilih Pegawai:</label>
+            <Select
+              options={employees}
+              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
+              placeholder="Pilih nama pegawai..."
+              isSearchable
+            />
+
+            <label style={{ marginTop: 12, display: "block" }}>Jenis Libur:</label>
+            <Select
+              isMulti
+              options={[
+                { value: "Sakit", label: "Sakit" },
+                { value: "Cuti Tahunan", label: "Cuti Tahunan" },
+                { value: "Cuti Penting", label: "Cuti Penting" },
+                { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
+              ]}
+              onChange={(opts) =>
+                setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
+              }
+              placeholder="Pilih jenis libur..."
+            />
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: 20,
+                gap: 8,
+              }}
+            >
+              <button
+                onClick={saveNewLeave}
+                style={{
+                  background: "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                }}
+              >
+                Simpan
+              </button>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  background: "#9ca3af",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>
+        {`
+          html, body, #root {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden !important;
+            width: 100%;
+          }
+          .fc {
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+          }
+          .fc-toolbar-title {
+            color: #1e3a8a !important;
+            font-weight: 700 !important;
+          }
+        `}
+      </style>
     </div>
-  </div>
-)}
-      </div>
   );
 }
