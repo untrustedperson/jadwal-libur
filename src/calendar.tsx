@@ -273,9 +273,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     center: "title",
     right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
   }}
-  events={events}
+  events={[
+    ...events,
+    ...(showHolidays ? _holidays : []), // ⬅️ Gabungkan libur nasional jika diaktifkan
+  ]}
   eventClick={(info) => {
     if (!canEdit) return;
+    // Hindari agar user tidak bisa menghapus libur nasional
+    if (info.event.title.startsWith("🇮🇩")) return; 
     setSelectedEventId(info.event.id);
     setShowDeleteModal(true);
   }}
@@ -289,6 +294,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   height="auto"
   themeSystem="standard"
 />
+
 
         </div>
 
