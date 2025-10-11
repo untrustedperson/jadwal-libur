@@ -77,7 +77,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     async function fetchHolidays() {
       try {
         const res = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=YOUR_API_KEY`
+          `https://www.googleapis.com/calendar/v3/calendars/id.indonesian%23holiday%40group.v.calendar.google.com/events?key=AIzaSyBi2QkU1iC1_V_ElpeKY_PctnMjcw_sw1I`
         );
         const data = await res.json();
         if (!data.items) return;
