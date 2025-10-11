@@ -126,18 +126,18 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   }, [selectedEmployee, events]);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100vw",
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "40px 16px",
-        overflowX: "hidden",
+      <div
+        style={{
+          minHeight: "100vh",
+          width: "100%", // ✅ perbaikan
+          background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "40px 16px",
+          overflowX: "hidden",
       }}
-    >
+      >
       {/* Header */}
       <div
         style={{
