@@ -69,58 +69,43 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-  useEffect(() => {
-  async function fetchHolidays() {
-    try {
-      const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-      console.log("🔍 GOOGLE API KEY:", apiKey);
+    useEffect(() => {
+    async function fetchHolidays() {
+      try {
+        const currentYear = new Date().getFullYear();
+        const url = `https://date.nager.at/api/v3/PublicHolidays/${currentYear}/ID`;
 
-      if (!apiKey) {
-        console.warn("❌ GOOGLE_API_KEY tidak ditemukan di .env");
-        return;
+        console.log("🌐 Fetching holidays from:", url);
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          console.error("❌ Gagal mengambil data libur nasional:", resp.status);
+          return;
+        }
+
+        const data = await resp.json();
+        if (!data || data.length === 0) {
+          console.warn("⚠️ Tidak ada data libur nasional ditemukan.");
+          return;
+        }
+
+        const formatted = data.map((item: any) => ({
+          id: item.date,
+          title: `🇮🇩 ${item.localName}`,
+          start: item.date,
+          end: item.date,
+          backgroundColor: "#dc2626", // merah
+          textColor: "#ffffff",
+        }));
+
+        console.log("✅ Fetched holidays:", formatted);
+        setHolidays(formatted);
+      } catch (err) {
+        console.error("⚠️ fetchHolidays error:", err);
       }
-
-      const calendarId = "id.indonesian#holiday@group.v.calendar.google.com";
-      const currentYear = new Date().getFullYear();
-      const timeMin = `${currentYear}-01-01T00:00:00Z`;
-      const timeMax = `${currentYear}-12-31T23:59:59Z`;
-
-      const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
-
-      console.log("🌐 Fetching holidays from:", url);
-
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        const errText = await resp.text();
-        console.error("❌ Google Calendar API error:", resp.status, errText);
-        return;
-      }
-
-      const data = await resp.json();
-      if (!data.items || data.items.length === 0) {
-        console.warn("⚠️ Tidak ada data libur nasional yang diterima:", data);
-        return;
-      }
-
-      const formatted = data.items.map((item: any) => ({
-        id: item.id,
-        title: `🇮🇩 ${item.summary}`,
-        start: item.start?.date || item.start?.dateTime,
-        end: item.end?.date || item.start?.date,
-        backgroundColor: "#dc2626", // merah
-        textColor: "#ffffff",
-      }));
-
-      console.log("✅ Fetched holidays:", formatted);
-      setHolidays(formatted);
-    } catch (err) {
-      console.error("⚠️ fetchHolidays error:", err);
     }
-  }
 
-  fetchHolidays();
-}, []);
-
+    fetchHolidays();
+  }, []);
 
   // 🚪 Logout
   async function handleLogout() {
