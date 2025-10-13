@@ -26,7 +26,11 @@ interface CalendarEvent {
   textColor?: string;
 }
 
-export default function Calendar({ canEdit }: { canEdit: boolean }) {
+export default function Calendar() {
+  // 🔹 Ambil role pengguna & atur izin edit otomatis
+  const role = localStorage.getItem("role");
+  const canEdit = role === "admin" || role === "dev";
+
   // 🔹 State utama
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
@@ -48,11 +52,10 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const calendarRef = useRef<any>(null);
 
-  // 🔹 Firebase config
+  // 🔹 Firebase setup
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
-  const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
   // 🔄 Firestore realtime
@@ -85,7 +88,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function fetchHolidays(year: number) {
     try {
       const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
-      console.log("🌐 Fetching Nager.Date holidays:", url);
       const resp = await fetch(url);
       if (!resp.ok) return console.error("❌ Error:", resp.status);
       const data = await resp.json();
@@ -93,7 +95,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         id: d.date,
         title: `🇮🇩 ${d.localName}`,
         start: d.date,
-        end: d.date,
         backgroundColor: "#dc2626",
         textColor: "#fff",
       }));
@@ -103,11 +104,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  // 🎋 Data hari raya Bali (dasar untuk tiap tahun)
+  // 🎋 Hari Raya Bali (dasar)
   const baseBalineseHolidays = [
-    { title: "Buda Keliwon Ugu", date: "01-08" },
-    { title: "Tumpek Wayang", date: "01-18" },
-    { title: "Hari Siwa Ratri", date: "01-27" },
     { title: "Hari Raya Saraswati", date: "02-08" },
     { title: "Tumpek Landep", date: "02-22" },
     { title: "Hari Raya Nyepi", date: "03-29" },
@@ -123,7 +121,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     { title: "Hari Raya Kuningan", date: "11-29" },
   ];
 
-  // 📅 Generate data Hari Raya Bali per tahun
+  // 🪷 Generate Hari Raya Bali per tahun
   const generateBalineseHolidays = (year: number) => {
     return baseBalineseHolidays.map((b) => ({
       id: `${year}-${b.date}-${b.title}`,
@@ -134,7 +132,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }));
   };
 
-  // ⏳ Initial fetch
+  // 🧭 Initial fetch
   useEffect(() => {
     fetchHolidays(selectedYear);
     setBalineseHolidays(generateBalineseHolidays(selectedYear));
@@ -147,8 +145,9 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // ➕ Tambah jadwal pegawai
+  // ➕ Tambah jadwal
   async function saveNewLeave() {
+    if (!canEdit) return alert("Anda tidak memiliki izin untuk menambah jadwal.");
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
     await addDoc(eventsCollection, {
@@ -163,7 +162,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     setSelectedLeaveTypes([]);
   }
 
-  // 🗓️ Ganti bulan/tahun
+  // 🗓️ Ubah bulan/tahun via picker
   const handleMonthYearChange = () => {
     if (calendarRef.current) {
       const newDate = new Date(selectedYear, selectedMonth, 1);
@@ -174,7 +173,17 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   };
 
-  // 📆 Klik judul bulan/tahun
+  // 🔄 Update saat navigasi kalender
+  const handleDatesSet = (info: any) => {
+    const visibleYear = info.view.currentStart.getFullYear();
+    if (visibleYear !== selectedYear) {
+      setSelectedYear(visibleYear);
+      fetchHolidays(visibleYear);
+      setBalineseHolidays(generateBalineseHolidays(visibleYear));
+    }
+  };
+
+  // 📅 Klik judul kalender
   useEffect(() => {
     const observer = new MutationObserver(() => {
       const el = document.querySelector(".fc-toolbar-title");
@@ -298,76 +307,20 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               ...(showBalineseHolidays ? balineseHolidays : []),
             ]}
             eventClick={(info) => {
-              if (!canEdit) return;
-              if (
-                info.event.title.startsWith("🇮🇩") ||
-                info.event.title.startsWith("🌺")
-              )
+              if (!canEdit) return alert("Anda tidak memiliki izin untuk menghapus jadwal.");
+              if (info.event.title.startsWith("🇮🇩") || info.event.title.startsWith("🌺"))
                 return;
               setSelectedEventId(info.event.id);
               setShowDeleteModal(true);
             }}
             dateClick={(info) => {
-              if (canEdit) {
-                setSelectedDate(info.dateStr);
-                setShowModal(true);
-              }
+              if (!canEdit) return alert("Anda tidak memiliki izin untuk menambah jadwal.");
+              setSelectedDate(info.dateStr);
+              setShowModal(true);
             }}
+            datesSet={handleDatesSet}
           />
-
-          {/* Legenda */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 20,
-              marginTop: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  background: "#2563eb",
-                  borderRadius: 4,
-                }}
-              ></div>
-              <span style={{ color: "#1e3a8a", fontWeight: 600 }}>
-                Jadwal Pegawai
-              </span>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  background: "#dc2626",
-                  borderRadius: 4,
-                }}
-              ></div>
-              <span style={{ color: "#991b1b", fontWeight: 600 }}>
-                Libur Nasional
-              </span>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  background: "#16a34a",
-                  borderRadius: 4,
-                }}
-              ></div>
-              <span style={{ color: "#14532d", fontWeight: 600 }}>
-                Hari Raya Bali
-              </span>
-            </div>
-          </div>
-        </div>
+    </div>
 
 {/* 🧾 REKAP DATA PEGAWAI */}
 <div
