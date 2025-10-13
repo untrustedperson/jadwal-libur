@@ -36,8 +36,8 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  //@ts-ignore
   const [showHolidays, setShowHolidays] = useState(true);
+  const [showBalineseHolidays, setShowBalineseHolidays] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -84,7 +84,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function fetchHolidays(year: number) {
     try {
       const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
-      console.log("🌐 Fetching Nager.Date holidays:", url);
       const resp = await fetch(url);
       if (!resp.ok) return console.error("❌ Error:", resp.status);
       const data = await resp.json();
@@ -105,6 +104,26 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   useEffect(() => {
     fetchHolidays(new Date().getFullYear());
   }, []);
+
+  // 📅 Hari Raya Bali (subset penting)
+  const balineseHolidays2025: CalendarEvent[] = [
+    { title: "Buda Keliwon Ugu", start: "2025-01-08" },
+    { title: "Tumpek Wayang", start: "2025-01-18" },
+    { title: "Hari Siwa Ratri", start: "2025-01-27" },
+    { title: "Hari Raya Saraswati", start: "2025-02-08" },
+    { title: "Tumpek Landep", start: "2025-02-22" },
+    { title: "Hari Raya Nyepi", start: "2025-03-29" },
+    { title: "Ngembak Geni", start: "2025-03-30" },
+    { title: "Hari Raya Galungan", start: "2025-04-23" },
+    { title: "Hari Raya Kuningan", start: "2025-05-03" },
+    { title: "Tumpek Krulut", start: "2025-06-07" },
+    { title: "Tumpek Kandang", start: "2025-07-12" },
+    { title: "Tumpek Wayang", start: "2025-08-16" },
+    { title: "Hari Raya Saraswati", start: "2025-09-06" },
+    { title: "Tumpek Uduh", start: "2025-10-25" },
+    { title: "Hari Raya Galungan", start: "2025-11-19" },
+    { title: "Hari Raya Kuningan", start: "2025-11-29" },
+  ];
 
   // 🚪 Logout
   async function handleLogout() {
@@ -220,6 +239,35 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
+          {/* Checkbox Filter */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              marginBottom: 16,
+              gap: 18,
+            }}
+          >
+            <label style={{ color: "#1e3a8a", fontWeight: 600 }}>
+              Tampilkan Libur Nasional
+            </label>
+            <input
+              type="checkbox"
+              checked={showHolidays}
+              onChange={(e) => setShowHolidays(e.target.checked)}
+            />
+            <label style={{ color: "#1e3a8a", fontWeight: 600 }}>
+              Tampilkan Hari Raya Bali
+            </label>
+            <input
+              type="checkbox"
+              checked={showBalineseHolidays}
+              onChange={(e) => setShowBalineseHolidays(e.target.checked)}
+            />
+          </div>
+
+          {/* Calendar */}
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, interactionPlugin]}
@@ -236,10 +284,21 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 textColor: "#fff",
               })),
               ...(showHolidays ? holidays : []),
+              ...(showBalineseHolidays
+                ? balineseHolidays2025.map((b) => ({
+                    ...b,
+                    backgroundColor: "#16a34a",
+                    textColor: "#fff",
+                  }))
+                : []),
             ]}
             eventClick={(info) => {
               if (!canEdit) return;
-              if (info.event.title.startsWith("🇮🇩")) return;
+              if (
+                info.event.title.startsWith("🇮🇩") ||
+                balineseHolidays2025.some((b) => b.title === info.event.title)
+              )
+                return;
               setSelectedEventId(info.event.id);
               setShowDeleteModal(true);
             }}
@@ -250,6 +309,59 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
               }
             }}
           />
+
+          {/* Legend */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 20,
+              marginTop: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  background: "#2563eb",
+                  borderRadius: 4,
+                }}
+              ></div>
+              <span style={{ color: "#1e3a8a", fontWeight: 600 }}>
+                Jadwal Pegawai
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  background: "#dc2626",
+                  borderRadius: 4,
+                }}
+              ></div>
+              <span style={{ color: "#991b1b", fontWeight: 600 }}>
+                Libur Nasional
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  background: "#16a34a",
+                  borderRadius: 4,
+                }}
+              ></div>
+              <span style={{ color: "#14532d", fontWeight: 600 }}>
+                Hari Raya Bali
+              </span>
+            </div>
+          </div>
         </div>
 
 {/* 🧾 REKAP DATA PEGAWAI */}
