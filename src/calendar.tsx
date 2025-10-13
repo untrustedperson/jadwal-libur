@@ -320,30 +320,36 @@ export default function Calendar() {
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            dateClick={(info) => {
-              setSelectedDate(info.dateStr);
-              setShowModal(true);
-            }}
-            events={[
-              ...events.map((e) => {
-                const status = (e.status || "pending").toLowerCase();
-                const bg =
-                  status === "approved"
-                    ? "#2563eb"
-                    : status === "pending"
-                    ? "#facc15"
-                    : "#9ca3af";
-                const txt = status === "pending" ? "#000" : "#fff";
-                return { ...e, backgroundColor: bg, textColor: txt };
-              }),
-              ...holidays,
-              ...balineseHolidays,
-            ]}
-          />
+<FullCalendar
+  ref={calendarRef}
+  plugins={[dayGridPlugin, interactionPlugin]}
+  initialView="dayGridMonth"
+  dateClick={(info) => {
+    setSelectedDate(info.dateStr);
+    setShowModal(true);
+  }}
+  eventClick={(info) => {
+    if (!canEdit) return; // hanya admin/dev bisa hapus
+    setSelectedEventId(info.event.id);
+    setShowDeleteModal(true);
+  }}
+  events={[
+    ...events.map((e) => {
+      const status = (e.status || "pending").toLowerCase();
+      const bg =
+        status === "approved"
+          ? "#2563eb"
+          : status === "pending"
+          ? "#facc15"
+          : "#9ca3af";
+      const txt = status === "pending" ? "#000" : "#fff";
+      return { ...e, backgroundColor: bg, textColor: txt };
+    }),
+    ...holidays,
+    ...balineseHolidays,
+  ]}
+/>
+
         </div>
 
         {/* === TABEL PENGAJUAN PENDING === */}
@@ -778,75 +784,76 @@ export default function Calendar() {
         </div>
       )}
 
-      {/* === MODAL HAPUS JADWAL (siap dipakai jika ingin eventClick hapus) === */}
-      {showDeleteModal && (
-        <div
+{/* === MODAL HAPUS JADWAL === */}
+{showDeleteModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1100,
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 12,
+        padding: 24,
+        width: "90%",
+        maxWidth: 400,
+        color: "#111827",
+        textAlign: "center",
+      }}
+    >
+      <h3 style={{ color: "#1e3a8a", marginBottom: 16 }}>
+        Apakah Anda yakin ingin menghapus jadwal ini?
+      </h3>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+        <button
+          onClick={async () => {
+            if (selectedEventId) {
+              await deleteDoc(doc(db, "events", selectedEventId));
+            }
+            setShowDeleteModal(false);
+            setSelectedEventId(null);
+          }}
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1100,
+            background: "#dc2626",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontWeight: 600,
           }}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: 24,
-              width: "90%",
-              maxWidth: 400,
-              color: "#111827",
-              textAlign: "center",
-            }}
-          >
-            <h3 style={{ color: "#1e3a8a", marginBottom: 16 }}>
-              Apakah Anda ingin menghapus jadwal ini?
-            </h3>
-            <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
-              <button
-                onClick={async () => {
-                  if (selectedEventId) {
-                    await deleteDoc(doc(db, "events", selectedEventId));
-                  }
-                  setShowDeleteModal(false);
-                  setSelectedEventId(null);
-                }}
-                style={{
-                  background: "#dc2626",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                }}
-              >
-                Ya
-              </button>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                style={{
-                  background: "#9ca3af",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                }}
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          Ya, Hapus
+        </button>
+        <button
+          onClick={() => setShowDeleteModal(false)}
+          style={{
+            background: "#9ca3af",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          Batal
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
