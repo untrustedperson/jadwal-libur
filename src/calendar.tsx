@@ -13,6 +13,7 @@ import {
   doc,
   onSnapshot,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 
 interface CalendarEvent {
@@ -22,16 +23,15 @@ interface CalendarEvent {
   leaveType?: string[] | string;
   start: string;
   end?: string;
+  status?: "approved" | "pending" | "rejected";
   backgroundColor?: string;
   textColor?: string;
 }
 
 export default function Calendar() {
-  // 🔹 Ambil role pengguna & atur izin edit otomatis
   const role = localStorage.getItem("role");
   const canEdit = role === "admin" || role === "dev";
 
-  // 🔹 State utama
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
   const [balineseHolidays, setBalineseHolidays] = useState<CalendarEvent[]>([]);
@@ -40,25 +40,21 @@ export default function Calendar() {
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
+  // @ts-ignore
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [showHolidays, setShowHolidays] = useState(true);
-  const [showBalineseHolidays, setShowBalineseHolidays] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-
-  // 🔹 Month picker
-  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const calendarRef = useRef<any>(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
-  // 🔹 Firebase setup
+  const calendarRef = useRef<any>(null);
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // 🔄 Firestore realtime
+  // 🔁 Load data events
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -70,7 +66,7 @@ export default function Calendar() {
     return () => unsub();
   }, []);
 
-  // 👥 Load pegawai
+  // 👥 Load data pegawai
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -84,7 +80,7 @@ export default function Calendar() {
     loadEmployees();
   }, []);
 
-  // 🇮🇩 Fetch libur nasional (Nager.Date)
+  // 🇮🇩 Ambil libur nasional
   async function fetchHolidays(year: number) {
     try {
       const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
@@ -104,7 +100,7 @@ export default function Calendar() {
     }
   }
 
-  // 🎋 Hari Raya Bali (dasar)
+  // 🎋 Hari Raya Bali (statis)
   const baseBalineseHolidays = [
     { title: "Hari Raya Saraswati", date: "02-08" },
     { title: "Tumpek Landep", date: "02-22" },
@@ -121,18 +117,16 @@ export default function Calendar() {
     { title: "Hari Raya Kuningan", date: "11-29" },
   ];
 
-  // 🪷 Generate Hari Raya Bali per tahun
-  const generateBalineseHolidays = (year: number) => {
-    return baseBalineseHolidays.map((b) => ({
+  const generateBalineseHolidays = (year: number) =>
+    baseBalineseHolidays.map((b) => ({
       id: `${year}-${b.date}-${b.title}`,
       title: `🌺 ${b.title}`,
       start: `${year}-${b.date}`,
       backgroundColor: "#16a34a",
       textColor: "#fff",
     }));
-  };
 
-  // 🧭 Initial fetch
+  // 🔄 Load libur nasional dan hari raya saat tahun berubah
   useEffect(() => {
     fetchHolidays(selectedYear);
     setBalineseHolidays(generateBalineseHolidays(selectedYear));
@@ -145,24 +139,40 @@ export default function Calendar() {
     navigate("/login");
   }
 
-  // ➕ Tambah jadwal
+  // ➕ Tambah pengajuan / jadwal
   async function saveNewLeave() {
-    if (!canEdit) return alert("Anda tidak memiliki izin untuk menambah jadwal.");
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
-    await addDoc(eventsCollection, {
+
+    const newEvent = {
       title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
       employee: selectedEmployeeForAdd,
       leaveType: selectedLeaveTypes,
       start: selectedDate,
       end: selectedDate,
-    });
+      status: canEdit ? "approved" : "pending",
+    };
+
+    await addDoc(eventsCollection, newEvent);
     setShowModal(false);
     setSelectedEmployeeForAdd(null);
     setSelectedLeaveTypes([]);
+    alert(
+      canEdit
+        ? "✅ Jadwal berhasil ditambahkan."
+        : "🕒 Pengajuan libur berhasil dikirim. Menunggu persetujuan admin."
+    );
   }
 
-  // 🗓️ Ubah bulan/tahun via picker
+  async function approveEvent(id: string) {
+    await updateDoc(doc(db, "events", id), { status: "approved" });
+  }
+
+  async function rejectEvent(id: string) {
+    await updateDoc(doc(db, "events", id), { status: "rejected" });
+  }
+
+  // 🔄 Ganti bulan & tahun di calendar
   const handleMonthYearChange = () => {
     if (calendarRef.current) {
       const newDate = new Date(selectedYear, selectedMonth, 1);
@@ -172,29 +182,6 @@ export default function Calendar() {
       setShowMonthPicker(false);
     }
   };
-
-  // 🔄 Update saat navigasi kalender
-  const handleDatesSet = (info: any) => {
-    const visibleYear = info.view.currentStart.getFullYear();
-    if (visibleYear !== selectedYear) {
-      setSelectedYear(visibleYear);
-      fetchHolidays(visibleYear);
-      setBalineseHolidays(generateBalineseHolidays(visibleYear));
-    }
-  };
-
-  // 📅 Klik judul kalender
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const el = document.querySelector(".fc-toolbar-title");
-      if (el) {
-        el.addEventListener("click", () => setShowMonthPicker(true));
-        el.addEventListener("touchstart", () => setShowMonthPicker(true));
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <div
@@ -209,49 +196,35 @@ export default function Calendar() {
       }}
     >
       <div style={{ width: "100%", maxWidth: 1200 }}>
-        {/* HEADER */}
+        {/* === HEADER === */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            flexWrap: "wrap",
+            alignItems: "center",
             marginBottom: 30,
           }}
         >
           <h1 style={{ color: "#fff", fontSize: "1.8rem" }}>
             📅 Jadwal Hari Libur — Halo, {userName}
           </h1>
-          <div style={{ display: "flex", gap: 10 }}>
-            {(role === "admin" || role === "dev") && (
-              <button
-                onClick={() => navigate("/manage-employees")}
-                style={{
-                  background: "#10b981",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 18px",
-                }}
-              >
-                👥 Kelola Pegawai
-              </button>
-            )}
-            <button
-              onClick={handleLogout}
-              style={{
-                background: "#2563eb",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 18px",
-              }}
-            >
-              Logout
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: "#2563eb",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 18px",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Logout
+          </button>
         </div>
 
-        {/* CALENDAR */}
+        {/* === CALENDAR === */}
         <div
           style={{
             background: "#fff",
@@ -261,66 +234,198 @@ export default function Calendar() {
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-              marginBottom: 16,
-              gap: 18,
-            }}
-          >
-            <label style={{ color: "#1e3a8a", fontWeight: 600 }}>
-              Tampilkan Libur Nasional
-            </label>
-            <input
-              type="checkbox"
-              checked={showHolidays}
-              onChange={(e) => setShowHolidays(e.target.checked)}
-            />
-            <label style={{ color: "#1e3a8a", fontWeight: 600 }}>
-              Tampilkan Hari Raya Bali
-            </label>
-            <input
-              type="checkbox"
-              checked={showBalineseHolidays}
-              onChange={(e) => setShowBalineseHolidays(e.target.checked)}
-            />
-          </div>
-
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, interactionPlugin]}
-            initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-            headerToolbar={{
-              left: "prev,next",
-              center: "title",
-              right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
-            }}
+            initialView="dayGridMonth"
             events={[
               ...events.map((e) => ({
                 ...e,
-                backgroundColor: "#2563eb",
-                textColor: "#fff",
+                backgroundColor:
+                  e.status === "pending"
+                    ? "#facc15"
+                    : e.status === "approved"
+                    ? "#2563eb"
+                    : "#9ca3af",
+                textColor: e.status === "pending" ? "#000" : "#fff",
               })),
-              ...(showHolidays ? holidays : []),
-              ...(showBalineseHolidays ? balineseHolidays : []),
+              ...holidays,
+              ...balineseHolidays,
             ]}
-            eventClick={(info) => {
-              if (!canEdit) return alert("Anda tidak memiliki izin untuk menghapus jadwal.");
-              if (info.event.title.startsWith("🇮🇩") || info.event.title.startsWith("🌺"))
-                return;
-              setSelectedEventId(info.event.id);
-              setShowDeleteModal(true);
-            }}
-            dateClick={(info) => {
-              if (!canEdit) return alert("Anda tidak memiliki izin untuk menambah jadwal.");
-              setSelectedDate(info.dateStr);
-              setShowModal(true);
-            }}
-            datesSet={handleDatesSet}
           />
-    </div>
+        </div>
+
+        {/* === TABEL PENGAJUAN PENDING === */}
+        {canEdit && (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: "24px",
+              marginBottom: 40,
+              boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+            }}
+          >
+            <h2
+              style={{
+                color: "#1e3a8a",
+                fontWeight: 700,
+                fontSize: "1.4rem",
+                marginBottom: 16,
+              }}
+            >
+              🕒 Daftar Pengajuan Pending
+            </h2>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                background: "#f9fafb",
+              }}
+            >
+              <thead>
+                <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
+                  <th style={{ padding: 12 }}>Pegawai</th>
+                  <th style={{ padding: 12 }}>Jenis Libur</th>
+                  <th style={{ padding: 12 }}>Tanggal</th>
+                  <th style={{ padding: 12 }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.filter((e) => e.status === "pending").length ? (
+                  events
+                    .filter((e) => e.status === "pending")
+                    .map((e) => (
+                      <tr key={e.id}>
+                        <td style={{ padding: 12 }}>{e.employee}</td>
+                        <td style={{ padding: 12 }}>
+                          {Array.isArray(e.leaveType)
+                            ? e.leaveType.join(", ")
+                            : e.leaveType}
+                        </td>
+                        <td style={{ padding: 12 }}>{e.start}</td>
+                        <td style={{ padding: 12 }}>
+                          <button
+                            onClick={() => approveEvent(e.id!)}
+                            style={{
+                              background: "#16a34a",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 6,
+                              padding: "6px 12px",
+                              marginRight: 8,
+                            }}
+                          >
+                            Setujui
+                          </button>
+                          <button
+                            onClick={() => rejectEvent(e.id!)}
+                            style={{
+                              background: "#dc2626",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 6,
+                              padding: "6px 12px",
+                            }}
+                          >
+                            Tolak
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: "center", padding: 12 }}>
+                      Tidak ada pengajuan pending.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* === REKAP PEGAWAI === */}
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 16,
+            padding: "24px",
+            marginBottom: 40,
+            boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+          }}
+        >
+          <h2 style={{ color: "#1e3a8a", fontWeight: 700, fontSize: "1.4rem" }}>
+            📊 Rekap Hari Libur Pegawai
+          </h2>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              background: "#f9fafb",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#f3f4f6" }}>
+                <th style={{ padding: 12 }}>Nama</th>
+                <th style={{ padding: 12 }}>Sakit</th>
+                <th style={{ padding: 12 }}>Cuti Tahunan</th>
+                <th style={{ padding: 12 }}>Cuti Penting</th>
+                <th style={{ padding: 12 }}>Cuti Penangguhan</th>
+                <th style={{ padding: 12 }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const grouped: Record<string, Record<string, number>> = {};
+                events
+                  .filter((e) => e.status === "approved")
+                  .forEach((e) => {
+                    const emp = e.employee || "Tidak diketahui";
+                    if (!grouped[emp])
+                      grouped[emp] = {
+                        Sakit: 0,
+                        "Cuti Tahunan": 0,
+                        "Cuti Penting": 0,
+                        "Cuti Penangguhan": 0,
+                      };
+                    const types = Array.isArray(e.leaveType)
+                      ? e.leaveType
+                      : [e.leaveType ?? ""];
+                    types.forEach((t) => {
+                      if (grouped[emp][t]) grouped[emp][t]++;
+                    });
+                  });
+
+                return Object.keys(grouped).length ? (
+                  Object.entries(grouped).map(([emp, rec]) => {
+                    const total =
+                      rec["Sakit"] +
+                      rec["Cuti Tahunan"] +
+                      rec["Cuti Penting"] +
+                      rec["Cuti Penangguhan"];
+                    return (
+                      <tr key={emp}>
+                        <td style={{ padding: 12 }}>{emp}</td>
+                        <td style={{ padding: 12 }}>{rec["Sakit"]}</td>
+                        <td style={{ padding: 12 }}>{rec["Cuti Tahunan"]}</td>
+                        <td style={{ padding: 12 }}>{rec["Cuti Penting"]}</td>
+                        <td style={{ padding: 12 }}>{rec["Cuti Penangguhan"]}</td>
+                        <td style={{ padding: 12, fontWeight: 700 }}>{total}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: "center", padding: 12 }}>
+                      Tidak ada data pegawai.
+                    </td>
+                  </tr>
+                );
+              })()}
+            </tbody>
+          </table>
+          </div>
 
 {/* 🧾 REKAP DATA PEGAWAI */}
 <div
