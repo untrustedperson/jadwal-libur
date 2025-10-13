@@ -370,69 +370,120 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {/* 🔹 Picker Bulan & Tahun */}
       {showMonthPicker && (
-        <div
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0,0,0,0.45)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 2000,
+      animation: "fadeIn 0.3s ease",
+    }}
+    onClick={() => setShowMonthPicker(false)}
+  >
+    <div
+      style={{
+        background: "#ffffff",
+        borderRadius: 16,
+        padding: "24px 28px",
+        width: "90%",
+        maxWidth: 400,
+        color: "#111827",
+        boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+        textAlign: "center",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3
+        style={{
+          color: "#2563eb",
+          fontWeight: 700,
+          fontSize: "1.3rem",
+          marginBottom: 16,
+        }}
+      >
+        Pilih Bulan & Tahun
+      </h3>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 12,
+          marginTop: 10,
+          marginBottom: 20,
+        }}
+      >
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(Number(e.target.value))}
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 2000,
+            padding: "8px 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: 8,
+            fontSize: "1rem",
+            color: "#1f2937",
+            backgroundColor: "#f9fafb",
+            cursor: "pointer",
           }}
-          onClick={() => setShowMonthPicker(false)}
         >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: 20,
-              color: "#111827",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ color: "#1e3a8a" }}>Pilih Bulan & Tahun</h3>
-            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              >
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <option key={i} value={i}>
-                    {new Date(0, i).toLocaleString("id-ID", { month: "long" })}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-              >
-                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
-                  <option key={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={handleMonthYearChange}
-              style={{
-                marginTop: 15,
-                background: "#2563eb",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "8px 16px",
-              }}
-            >
-              Tampilkan
-            </button>
-          </div>
-        </div>
-      )}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <option key={i} value={i}>
+              {new Date(0, i).toLocaleString("id-ID", { month: "long" })}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+          style={{
+            padding: "8px 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: 8,
+            fontSize: "1rem",
+            color: "#1f2937",
+            backgroundColor: "#f9fafb",
+            cursor: "pointer",
+          }}
+        >
+          {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
+            <option key={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        onClick={handleMonthYearChange}
+        style={{
+          background: "#2563eb",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: 10,
+          padding: "10px 18px",
+          fontWeight: 600,
+          fontSize: "1rem",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+        }}
+        onMouseOver={(e) =>
+          (e.currentTarget.style.background = "#1e40af")
+        }
+        onMouseOut={(e) =>
+          (e.currentTarget.style.background = "#2563eb")
+        }
+      >
+        Tampilkan
+      </button>
+    </div>
+  </div>
+)}
 
       {/* MODAL TAMBAH LIBUR */}
       {showModal && (
