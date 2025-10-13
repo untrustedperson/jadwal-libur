@@ -40,7 +40,6 @@ export default function Calendar() {
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
-  // @ts-ignore
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -54,7 +53,7 @@ export default function Calendar() {
   const employeesCollection = collection(db, "employees");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // 🔁 Load data events
+  // 🔁 Load data events realtime
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -126,7 +125,6 @@ export default function Calendar() {
       textColor: "#fff",
     }));
 
-  // 🔄 Load libur nasional dan hari raya saat tahun berubah
   useEffect(() => {
     fetchHolidays(selectedYear);
     setBalineseHolidays(generateBalineseHolidays(selectedYear));
@@ -208,20 +206,36 @@ export default function Calendar() {
           <h1 style={{ color: "#fff", fontSize: "1.8rem" }}>
             📅 Jadwal Hari Libur — Halo, {userName}
           </h1>
-          <button
-            onClick={handleLogout}
-            style={{
-              background: "#2563eb",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "10px 18px",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            Logout
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => setShowMonthPicker(true)}
+              style={{
+                background: "#facc15",
+                color: "#000",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 16px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              📆 Pilih Bulan & Tahun
+            </button>
+            <button
+              onClick={handleLogout}
+              style={{
+                background: "#2563eb",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 18px",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* === CALENDAR === */}
@@ -230,7 +244,7 @@ export default function Calendar() {
             background: "#fff",
             borderRadius: 16,
             padding: "32px 24px",
-            marginBottom: 50,
+            marginBottom: 20,
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
@@ -238,6 +252,10 @@ export default function Calendar() {
             ref={calendarRef}
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
+            dateClick={(info) => {
+              setSelectedDate(info.dateStr);
+              setShowModal(true);
+            }}
             events={[
               ...events.map((e) => ({
                 ...e,
@@ -253,7 +271,140 @@ export default function Calendar() {
               ...balineseHolidays,
             ]}
           />
+
+          {/* === LEGENDA === */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 16,
+              flexWrap: "wrap",
+              marginTop: 16,
+            }}
+          >
+            {[
+              ["#2563eb", "Jadwal Disetujui"],
+              ["#facc15", "Pending Persetujuan"],
+              ["#dc2626", "Libur Nasional"],
+              ["#16a34a", "Hari Raya Bali"],
+            ].map(([color, label]) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: 4,
+                    backgroundColor: color,
+                  }}
+                />
+                <span style={{ color: "#1e3a8a", fontWeight: 600 }}>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* === MODAL PICKER BULAN & TAHUN === */}
+        {showMonthPicker && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(0,0,0,0.45)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 2000,
+            }}
+            onClick={() => setShowMonthPicker(false)}
+          >
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: 16,
+                padding: "24px 28px",
+                width: "90%",
+                maxWidth: 400,
+                color: "#111827",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                textAlign: "center",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3
+                style={{
+                  color: "#2563eb",
+                  fontWeight: 700,
+                  fontSize: "1.3rem",
+                  marginBottom: 16,
+                }}
+              >
+                Pilih Bulan & Tahun
+              </h3>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 12,
+                  marginBottom: 20,
+                }}
+              >
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: 8,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <option key={i} value={i}>
+                      {new Date(0, i).toLocaleString("id-ID", { month: "long" })}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: 8,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(
+                    (y) => (
+                      <option key={y}>{y}</option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <button
+                onClick={handleMonthYearChange}
+                style={{
+                  background: "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "10px 18px",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  cursor: "pointer",
+                }}
+              >
+                Tampilkan
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* === TABEL PENGAJUAN PENDING === */}
         {canEdit && (
@@ -266,14 +417,7 @@ export default function Calendar() {
               boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
             }}
           >
-            <h2
-              style={{
-                color: "#1e3a8a",
-                fontWeight: 700,
-                fontSize: "1.4rem",
-                marginBottom: 16,
-              }}
-            >
+            <h2 style={{ color: "#1e3a8a", fontWeight: 700, fontSize: "1.4rem" }}>
               🕒 Daftar Pengajuan Pending
             </h2>
             <table
@@ -281,10 +425,11 @@ export default function Calendar() {
                 width: "100%",
                 borderCollapse: "collapse",
                 background: "#f9fafb",
+                marginTop: 10,
               }}
             >
               <thead>
-                <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
+                <tr style={{ background: "#f3f4f6" }}>
                   <th style={{ padding: 12 }}>Pegawai</th>
                   <th style={{ padding: 12 }}>Jenis Libur</th>
                   <th style={{ padding: 12 }}>Tanggal</th>
@@ -345,356 +490,172 @@ export default function Calendar() {
           </div>
         )}
 
-        {/* === REKAP PEGAWAI === */}
+        {/* === REKAP DATA PEGAWAI === */}
         <div
           style={{
             background: "#fff",
             borderRadius: 16,
-            padding: "24px",
-            marginBottom: 40,
+            padding: "32px 24px",
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
-          <h2 style={{ color: "#1e3a8a", fontWeight: 700, fontSize: "1.4rem" }}>
-            📊 Rekap Hari Libur Pegawai
-          </h2>
-          <table
+          <div
             style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              background: "#f9fafb",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 24,
+              flexWrap: "wrap",
             }}
           >
-            <thead>
-              <tr style={{ background: "#f3f4f6" }}>
-                <th style={{ padding: 12 }}>Nama</th>
-                <th style={{ padding: 12 }}>Sakit</th>
-                <th style={{ padding: 12 }}>Cuti Tahunan</th>
-                <th style={{ padding: 12 }}>Cuti Penting</th>
-                <th style={{ padding: 12 }}>Cuti Penangguhan</th>
-                <th style={{ padding: 12 }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const grouped: Record<string, Record<string, number>> = {};
-                events
-                  .filter((e) => e.status === "approved")
-                  .forEach((e) => {
-                    const emp = e.employee || "Tidak diketahui";
-                    if (!grouped[emp])
-                      grouped[emp] = {
-                        Sakit: 0,
-                        "Cuti Tahunan": 0,
-                        "Cuti Penting": 0,
-                        "Cuti Penangguhan": 0,
-                      };
-                    const types = Array.isArray(e.leaveType)
-                      ? e.leaveType
-                      : [e.leaveType ?? ""];
-                    types.forEach((t) => {
-                      if (grouped[emp][t]) grouped[emp][t]++;
-                    });
-                  });
-
-                return Object.keys(grouped).length ? (
-                  Object.entries(grouped).map(([emp, rec]) => {
-                    const total =
-                      rec["Sakit"] +
-                      rec["Cuti Tahunan"] +
-                      rec["Cuti Penting"] +
-                      rec["Cuti Penangguhan"];
-                    return (
-                      <tr key={emp}>
-                        <td style={{ padding: 12 }}>{emp}</td>
-                        <td style={{ padding: 12 }}>{rec["Sakit"]}</td>
-                        <td style={{ padding: 12 }}>{rec["Cuti Tahunan"]}</td>
-                        <td style={{ padding: 12 }}>{rec["Cuti Penting"]}</td>
-                        <td style={{ padding: 12 }}>{rec["Cuti Penangguhan"]}</td>
-                        <td style={{ padding: 12, fontWeight: 700 }}>{total}</td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: 12 }}>
-                      Tidak ada data pegawai.
-                    </td>
-                  </tr>
-                );
-              })()}
-            </tbody>
-          </table>
+            <h2
+              style={{
+                color: "#1e3a8a",
+                fontWeight: 700,
+                fontSize: "1.4rem",
+              }}
+            >
+              🔍 Rekap Hari Libur Pegawai
+            </h2>
+            <div style={{ width: 260, marginTop: 10 }}>
+              <Select
+                options={[{ value: "all", label: "Tampilkan Semua Pegawai" }, ...employees]}
+                defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
+                onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: 8,
+                    borderColor: "#2563eb",
+                    backgroundColor: "#f9fafb",
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    color: "#111827",
+                    fontWeight: 600,
+                  }),
+                }}
+              />
+            </div>
           </div>
+          
 
-{/* 🧾 REKAP DATA PEGAWAI */}
-<div
-  style={{
-    background: "#fff",
-    borderRadius: 16,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-    width: "100%",
-    maxWidth: 1200, // disamakan dengan calendar
-    padding: "32px 24px",
-    marginBottom: 50,
-    boxSizing: "border-box",
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 24,
-      flexWrap: "wrap",
-    }}
-  >
-    <h2
-      style={{
-        color: "#1e3a8a",
-        fontWeight: 700,
-        fontSize: "1.4rem",
-        margin: 0,
-      }}
-    >
-      🔍 Rekap Hari Libur Pegawai
-    </h2>
 
-    <div style={{ width: 260, marginTop: 10 }}>
-      <Select
-        options={[{ value: "all", label: "Tampilkan Semua Pegawai" }, ...employees]}
-        defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
-        onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
-        styles={{
-          control: (base) => ({
-            ...base,
-            borderRadius: 8,
-            borderColor: "#d1d5db",
-            boxShadow: "none",
-            "&:hover": { borderColor: "#2563eb" },
-          }),
-        }}
-      />
-    </div>
-  </div>
 
-  <div style={{ overflowX: "auto" }}>
-    <table
-      style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        background: "#f9fafb",
-        color: "#111827",
-        borderRadius: 12,
-        overflow: "hidden",
-      }}
-    >
-      <thead>
-        <tr style={{ background: "#f3f4f6", color: "#1f2937", textAlign: "left" }}>
-          <th style={{ padding: 12, fontWeight: 700 }}>Nama Pegawai</th>
-          <th style={{ padding: 12, fontWeight: 700 }}>Sakit</th>
-          <th style={{ padding: 12, fontWeight: 700 }}>Cuti Tahunan</th>
-          <th style={{ padding: 12, fontWeight: 700 }}>Cuti Penting</th>
-          <th style={{ padding: 12, fontWeight: 700 }}>Cuti Penangguhan</th>
-          <th style={{ padding: 12, fontWeight: 700 }}>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {(() => {
-          const grouped: Record<string, Record<string, number>> = {};
-          events.forEach((e) => {
-            const emp = e.employee || "(Tidak diketahui)";
-            if (!grouped[emp])
-              grouped[emp] = {
-                Sakit: 0,
-                "Cuti Tahunan": 0,
-                "Cuti Penting": 0,
-                "Cuti Penangguhan": 0,
-              };
-            const types = Array.isArray(e.leaveType)
-              ? e.leaveType
-              : typeof e.leaveType === "string"
-              ? [e.leaveType]
-              : [];
-            types.forEach((t) => {
-              if (grouped[emp][t] !== undefined) grouped[emp][t]++;
-            });
-          });
 
-          const keys =
-            selectedEmployee && selectedEmployee !== "all"
-              ? Object.keys(grouped).filter((k) => k === selectedEmployee)
-              : Object.keys(grouped);
 
-          return keys.length ? (
-            keys.map((emp) => {
-              const rec = grouped[emp];
-              const total =
-                rec["Sakit"] +
-                rec["Cuti Tahunan"] +
-                rec["Cuti Penting"] +
-                rec["Cuti Penangguhan"];
-              return (
-                <tr
-                  key={emp}
-                  style={{
-                    borderBottom: "1px solid #e5e7eb",
-                    transition: "background 0.2s ease",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#e0e7ff")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
-                >
-                  <td style={{ padding: 12, fontWeight: 600 }}>{emp}</td>
-                  <td style={{ padding: 12 }}>{rec["Sakit"]}</td>
-                  <td style={{ padding: 12 }}>{rec["Cuti Tahunan"]}</td>
-                  <td style={{ padding: 12 }}>{rec["Cuti Penting"]}</td>
-                  <td style={{ padding: 12 }}>{rec["Cuti Penangguhan"]}</td>
-                  <td
-                    style={{
-                      padding: 12,
-                      fontWeight: 700,
-                      color: "#1e3a8a",
-                    }}
-                  >
-                    {total}
-                  </td>
+
+	<div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                background: "#f9fafb",
+                color: "#111827",
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
+              <thead>
+                <tr style={{ background: "#f3f4f6", color: "#1f2937", textAlign: "left" }}>
+                  <th style={{ padding: 12, fontWeight: 700 }}>Nama Pegawai</th>
+                  <th style={{ padding: 12, fontWeight: 700 }}>Sakit</th>
+                  <th style={{ padding: 12, fontWeight: 700 }}>Cuti Tahunan</th>
+                  <th style={{ padding: 12, fontWeight: 700 }}>Cuti Penting</th>
+                  <th style={{ padding: 12, fontWeight: 700 }}>Cuti Penangguhan</th>
+                  <th style={{ padding: 12, fontWeight: 700 }}>Total</th>
                 </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan={6} style={{ padding: 14, textAlign: "center", color: "#6b7280" }}>
-                Tidak ada data pegawai ditemukan.
-              </td>
-            </tr>
-          );
-        })()}
-      </tbody>
-    </table>
-  </div>
-</div>
-</div>
+              </thead>
+              <tbody>
+                {(() => {
+                  const grouped: Record<string, Record<string, number>> = {};
+                  events
+                    .filter((e) => e.status === "approved")
+                    .forEach((e) => {
+                      const emp = e.employee || "(Tidak diketahui)";
+                      if (!grouped[emp])
+                        grouped[emp] = {
+                          Sakit: 0,
+                          "Cuti Tahunan": 0,
+                          "Cuti Penting": 0,
+                          "Cuti Penangguhan": 0,
+                        };
+                      const types = Array.isArray(e.leaveType)
+                        ? e.leaveType
+                        : typeof e.leaveType === "string"
+                        ? [e.leaveType]
+                        : [];
+                      types.forEach((t) => {
+                        if (grouped[emp][t] !== undefined) grouped[emp][t]++;
+                      });
+                    });
 
-      {showMonthPicker && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "rgba(0,0,0,0.45)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 2000,
-      animation: "fadeIn 0.3s ease",
-    }}
-    onClick={() => setShowMonthPicker(false)}
-  >
-    <div
-      style={{
-        background: "#ffffff",
-        borderRadius: 16,
-        padding: "24px 28px",
-        width: "90%",
-        maxWidth: 400,
-        color: "#111827",
-        boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-        textAlign: "center",
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h3
-        style={{
-          color: "#2563eb",
-          fontWeight: 700,
-          fontSize: "1.3rem",
-          marginBottom: 16,
-        }}
-      >
-        Pilih Bulan & Tahun
-      </h3>
+                  const keys =
+                    selectedEmployee && selectedEmployee !== "all"
+                      ? Object.keys(grouped).filter((k) => k === selectedEmployee)
+                      : Object.keys(grouped);
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          gap: 12,
-          marginTop: 10,
-          marginBottom: 20,
-        }}
-      >
-        <select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(Number(e.target.value))}
-          style={{
-            padding: "8px 12px",
-            border: "1px solid #d1d5db",
-            borderRadius: 8,
-            fontSize: "1rem",
-            color: "#1f2937",
-            backgroundColor: "#f9fafb",
-            cursor: "pointer",
-          }}
-        >
-          {Array.from({ length: 12 }).map((_, i) => (
-            <option key={i} value={i}>
-              {new Date(0, i).toLocaleString("id-ID", { month: "long" })}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(Number(e.target.value))}
-          style={{
-            padding: "8px 12px",
-            border: "1px solid #d1d5db",
-            borderRadius: 8,
-            fontSize: "1rem",
-            color: "#1f2937",
-            backgroundColor: "#f9fafb",
-            cursor: "pointer",
-          }}
-        >
-          {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
-            <option key={y}>{y}</option>
-          ))}
-        </select>
+                  return keys.length ? (
+                    keys.map((emp) => {
+                      const rec = grouped[emp];
+                      const total =
+                        rec["Sakit"] +
+                        rec["Cuti Tahunan"] +
+                        rec["Cuti Penting"] +
+                        rec["Cuti Penangguhan"];
+                      return (
+                        <tr
+                          key={emp}
+                          style={{
+                            borderBottom: "1px solid #e5e7eb",
+                            transition: "background 0.2s ease",
+                          }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background = "#e0e7ff")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background = "transparent")
+                          }
+                        >
+                          <td style={{ padding: 12, fontWeight: 600 }}>{emp}</td>
+                          <td style={{ padding: 12 }}>{rec["Sakit"]}</td>
+                          <td style={{ padding: 12 }}>{rec["Cuti Tahunan"]}</td>
+                          <td style={{ padding: 12 }}>{rec["Cuti Penting"]}</td>
+                          <td style={{ padding: 12 }}>{rec["Cuti Penangguhan"]}</td>
+                          <td
+                            style={{
+                              padding: 12,
+                              fontWeight: 700,
+                              color: "#1e3a8a",
+                            }}
+                          >
+                            {total}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        style={{
+                          padding: 14,
+                          textAlign: "center",
+                          color: "#6b7280",
+                        }}
+                      >
+                        Tidak ada data pegawai ditemukan.
+                      </td>
+                    </tr>
+                  );
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <button
-        onClick={handleMonthYearChange}
-        style={{
-          background: "#2563eb",
-          color: "#ffffff",
-          border: "none",
-          borderRadius: 10,
-          padding: "10px 18px",
-          fontWeight: 600,
-          fontSize: "1rem",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-        }}
-        onMouseOver={(e) =>
-          (e.currentTarget.style.background = "#1e40af")
-        }
-        onMouseOut={(e) =>
-          (e.currentTarget.style.background = "#2563eb")
-        }
-      >
-        Tampilkan
-      </button>
-    </div>
-  </div>
-)}
-
-      {/* MODAL TAMBAH LIBUR */}
+      {/* === MODAL TAMBAH LIBUR (untuk viewer & admin) === */}
       {showModal && (
         <div
           style={{
@@ -720,15 +681,40 @@ export default function Calendar() {
               color: "#111827",
             }}
           >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
+            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
+              {canEdit ? "Tambah Hari Libur Pegawai" : "Ajukan Hari Libur"}
+            </h3>
             <label style={{ fontWeight: 600 }}>Pilih Pegawai:</label>
             <Select
-              options={employees}
+              options={
+                canEdit
+                  ? employees
+                  : [
+                      {
+                        value: userName,
+                        label: userName,
+                      },
+                    ]
+              }
+              defaultValue={
+                canEdit
+                  ? undefined
+                  : { value: userName, label: userName }
+              }
+              isDisabled={!canEdit}
               onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
               placeholder="Pilih nama pegawai..."
               isSearchable
             />
-            <label style={{ marginTop: 12, display: "block", fontWeight: 600 }}>Jenis Libur:</label>
+            <label
+              style={{
+                marginTop: 12,
+                display: "block",
+                fontWeight: 600,
+              }}
+            >
+              Jenis Libur:
+            </label>
             <Select
               isMulti
               options={[
@@ -737,7 +723,9 @@ export default function Calendar() {
                 { value: "Cuti Penting", label: "Cuti Penting" },
                 { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
               ]}
-              onChange={(opts) => setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])}
+              onChange={(opts) =>
+                setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
+              }
               placeholder="Pilih jenis libur..."
             />
             <div
@@ -779,7 +767,7 @@ export default function Calendar() {
         </div>
       )}
 
-      {/* 🗑️ Modal Hapus Jadwal */}
+      {/* === MODAL HAPUS JADWAL === */}
       {showDeleteModal && (
         <div
           style={{
