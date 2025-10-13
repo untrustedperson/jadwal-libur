@@ -252,123 +252,157 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
           />
         </div>
 
-        {/* REKAP DATA PEGAWAI */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 16,
-            boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-            width: "100%",
-            maxWidth: 900,
-            padding: "28px 24px",
-            color: "#111827",
-            marginBottom: 40,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 20,
-              flexWrap: "wrap",
-            }}
-          >
-            <h2 style={{ color: "#1e3a8a" }}>🔍 Rekap Hari Libur Pegawai</h2>
-            <div style={{ width: 250 }}>
-              <Select
-                options={[{ value: "all", label: "Tampilkan Semua Pegawai" }, ...employees]}
-                defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
-                onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
-              />
-            </div>
-          </div>
+{/* 🧾 REKAP DATA PEGAWAI */}
+<div
+  style={{
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+    width: "100%",
+    maxWidth: 1200, // disamakan dengan calendar
+    padding: "32px 24px",
+    marginBottom: 50,
+    boxSizing: "border-box",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 24,
+      flexWrap: "wrap",
+    }}
+  >
+    <h2
+      style={{
+        color: "#1e3a8a",
+        fontWeight: 700,
+        fontSize: "1.4rem",
+        margin: 0,
+      }}
+    >
+      🔍 Rekap Hari Libur Pegawai
+    </h2>
 
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              background: "#f9fafb",
-              color: "#111827",
-            }}
-          >
-            <thead>
-              <tr style={{ background: "#e5e7eb", color: "#111827" }}>
-                <th style={{ padding: 8 }}>Nama Pegawai</th>
-                <th style={{ padding: 8 }}>Sakit</th>
-                <th style={{ padding: 8 }}>Cuti Tahunan</th>
-                <th style={{ padding: 8 }}>Cuti Penting</th>
-                <th style={{ padding: 8 }}>Cuti Penangguhan</th>
-                <th style={{ padding: 8 }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const grouped: Record<string, Record<string, number>> = {};
-                events.forEach((e) => {
-                  const emp = e.employee || "(Tidak diketahui)";
-                  if (!grouped[emp])
-                    grouped[emp] = {
-                      Sakit: 0,
-                      "Cuti Tahunan": 0,
-                      "Cuti Penting": 0,
-                      "Cuti Penangguhan": 0,
-                    };
-                  const types = Array.isArray(e.leaveType)
-                    ? e.leaveType
-                    : typeof e.leaveType === "string"
-                    ? [e.leaveType]
-                    : [];
-                  types.forEach((t) => {
-                    if (grouped[emp][t] !== undefined) grouped[emp][t]++;
-                  });
-                });
+    <div style={{ width: 260, marginTop: 10 }}>
+      <Select
+        options={[{ value: "all", label: "Tampilkan Semua Pegawai" }, ...employees]}
+        defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
+        onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
+        styles={{
+          control: (base) => ({
+            ...base,
+            borderRadius: 8,
+            borderColor: "#d1d5db",
+            boxShadow: "none",
+            "&:hover": { borderColor: "#2563eb" },
+          }),
+        }}
+      />
+    </div>
+  </div>
 
-                const keys =
-                  selectedEmployee && selectedEmployee !== "all"
-                    ? Object.keys(grouped).filter((k) => k === selectedEmployee)
-                    : Object.keys(grouped);
+  <div style={{ overflowX: "auto" }}>
+    <table
+      style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        background: "#f9fafb",
+        color: "#111827",
+        borderRadius: 12,
+        overflow: "hidden",
+      }}
+    >
+      <thead>
+        <tr style={{ background: "#f3f4f6", color: "#1f2937", textAlign: "left" }}>
+          <th style={{ padding: 12, fontWeight: 700 }}>Nama Pegawai</th>
+          <th style={{ padding: 12, fontWeight: 700 }}>Sakit</th>
+          <th style={{ padding: 12, fontWeight: 700 }}>Cuti Tahunan</th>
+          <th style={{ padding: 12, fontWeight: 700 }}>Cuti Penting</th>
+          <th style={{ padding: 12, fontWeight: 700 }}>Cuti Penangguhan</th>
+          <th style={{ padding: 12, fontWeight: 700 }}>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {(() => {
+          const grouped: Record<string, Record<string, number>> = {};
+          events.forEach((e) => {
+            const emp = e.employee || "(Tidak diketahui)";
+            if (!grouped[emp])
+              grouped[emp] = {
+                Sakit: 0,
+                "Cuti Tahunan": 0,
+                "Cuti Penting": 0,
+                "Cuti Penangguhan": 0,
+              };
+            const types = Array.isArray(e.leaveType)
+              ? e.leaveType
+              : typeof e.leaveType === "string"
+              ? [e.leaveType]
+              : [];
+            types.forEach((t) => {
+              if (grouped[emp][t] !== undefined) grouped[emp][t]++;
+            });
+          });
 
-                return keys.length ? (
-                  keys.map((emp) => {
-                    const rec = grouped[emp];
-                    const total =
-                      rec["Sakit"] +
-                      rec["Cuti Tahunan"] +
-                      rec["Cuti Penting"] +
-                      rec["Cuti Penangguhan"];
-                    return (
-                      <tr key={emp} style={{ borderBottom: "1px solid #d1d5db" }}>
-                        <td style={{ padding: 8, fontWeight: 600 }}>{emp}</td>
-                        <td style={{ padding: 8 }}>{rec["Sakit"]}</td>
-                        <td style={{ padding: 8 }}>{rec["Cuti Tahunan"]}</td>
-                        <td style={{ padding: 8 }}>{rec["Cuti Penting"]}</td>
-                        <td style={{ padding: 8 }}>{rec["Cuti Penangguhan"]}</td>
-                        <td
-                          style={{
-                            padding: 8,
-                            fontWeight: "bold",
-                            background: "#e0e7ff",
-                            color: "#1e3a8a",
-                          }}
-                        >
-                          {total}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} style={{ padding: 10, color: "#6b7280" }}>
-                      Tidak ada data pegawai ditemukan.
-                    </td>
-                  </tr>
-                );
-              })()}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          const keys =
+            selectedEmployee && selectedEmployee !== "all"
+              ? Object.keys(grouped).filter((k) => k === selectedEmployee)
+              : Object.keys(grouped);
+
+          return keys.length ? (
+            keys.map((emp) => {
+              const rec = grouped[emp];
+              const total =
+                rec["Sakit"] +
+                rec["Cuti Tahunan"] +
+                rec["Cuti Penting"] +
+                rec["Cuti Penangguhan"];
+              return (
+                <tr
+                  key={emp}
+                  style={{
+                    borderBottom: "1px solid #e5e7eb",
+                    transition: "background 0.2s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#e0e7ff")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  <td style={{ padding: 12, fontWeight: 600 }}>{emp}</td>
+                  <td style={{ padding: 12 }}>{rec["Sakit"]}</td>
+                  <td style={{ padding: 12 }}>{rec["Cuti Tahunan"]}</td>
+                  <td style={{ padding: 12 }}>{rec["Cuti Penting"]}</td>
+                  <td style={{ padding: 12 }}>{rec["Cuti Penangguhan"]}</td>
+                  <td
+                    style={{
+                      padding: 12,
+                      fontWeight: 700,
+                      color: "#1e3a8a",
+                    }}
+                  >
+                    {total}
+                  </td>
+                </tr>
+              );
+            })
+          ) : (
+            <tr>
+              <td colSpan={6} style={{ padding: 14, textAlign: "center", color: "#6b7280" }}>
+                Tidak ada data pegawai ditemukan.
+              </td>
+            </tr>
+          );
+        })()}
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
 
       {showMonthPicker && (
   <div
