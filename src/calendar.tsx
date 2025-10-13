@@ -12,7 +12,6 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  getDocs,
   updateDoc,
 } from "firebase/firestore";
 
@@ -35,17 +34,27 @@ export default function Calendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
   const [balineseHolidays, setBalineseHolidays] = useState<CalendarEvent[]>([]);
-  const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
+  const [employees, setEmployees] = useState<{ value: string; label: string; id?: string }[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>("all");
+
+  // modal tambah libur
   const [showModal, setShowModal] = useState(false);
-  const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
+
+  // modal hapus event
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  // bulan/tahun
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+
+  // kelola pegawai (admin)
+  const [empNewName, setEmpNewName] = useState("");
+  const [empEditId, setEmpEditId] = useState<string | null>(null);
+  const [empEditName, setEmpEditName] = useState("");
 
   const calendarRef = useRef<any>(null);
   const navigate = useNavigate();
@@ -53,7 +62,10 @@ export default function Calendar() {
   const employeesCollection = collection(db, "employees");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // 🔁 Load data events realtime
+  /* =========================
+     Data Realtime
+  ==========================*/
+  // events realtime
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -65,21 +77,23 @@ export default function Calendar() {
     return () => unsub();
   }, []);
 
-  // 👥 Load data pegawai
+  // employees realtime (pakai onSnapshot supaya CRUD terasa langsung)
   useEffect(() => {
-    const loadEmployees = async () => {
-      const snap = await getDocs(employeesCollection);
+    const unsub = onSnapshot(employeesCollection, (snap) => {
       setEmployees(
         snap.docs.map((d) => ({
+          id: d.id,
           value: d.data().name,
           label: d.data().name,
         }))
       );
-    };
-    loadEmployees();
+    });
+    return () => unsub();
   }, []);
 
-  // 🇮🇩 Ambil libur nasional
+  /* =========================
+     Libur Nasional / Bali
+  ==========================*/
   async function fetchHolidays(year: number) {
     try {
       const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
@@ -99,7 +113,7 @@ export default function Calendar() {
     }
   }
 
-  // 🎋 Hari Raya Bali (statis)
+  // Hari Raya Bali (statis sederhana, bisa kamu kembangkan)
   const baseBalineseHolidays = [
     { title: "Hari Raya Saraswati", date: "02-08" },
     { title: "Tumpek Landep", date: "02-22" },
@@ -115,7 +129,6 @@ export default function Calendar() {
     { title: "Hari Raya Galungan", date: "11-19" },
     { title: "Hari Raya Kuningan", date: "11-29" },
   ];
-
   const generateBalineseHolidays = (year: number) =>
     baseBalineseHolidays.map((b) => ({
       id: `${year}-${b.date}-${b.title}`,
@@ -130,22 +143,29 @@ export default function Calendar() {
     setBalineseHolidays(generateBalineseHolidays(selectedYear));
   }, [selectedYear]);
 
-  // 🚪 Logout
+  /* =========================
+     Auth
+  ==========================*/
   async function handleLogout() {
     await signOut(auth);
     localStorage.removeItem("role");
     navigate("/login");
   }
 
-  // ➕ Tambah pengajuan / jadwal
+  /* =========================
+     CRUD Events / Pengajuan
+  ==========================*/
+  // viewer hanya pilih jenis libur → employee otomatis userName
   async function saveNewLeave() {
-    if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
-      return alert("Lengkapi semua data!");
+    if (selectedLeaveTypes.length === 0) return alert("Pilih jenis libur dulu!");
 
-    const newEvent = {
-      title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
-      employee: selectedEmployeeForAdd,
-      leaveType: selectedLeaveTypes,
+    // normalisasi leaveType ke array string
+    const leaveArr = selectedLeaveTypes.map((v) => String(v));
+
+    const newEvent: CalendarEvent = {
+      title: `${userName} - ${leaveArr.join(", ")}`,
+      employee: userName,
+      leaveType: leaveArr,
       start: selectedDate,
       end: selectedDate,
       status: canEdit ? "approved" : "pending",
@@ -153,7 +173,6 @@ export default function Calendar() {
 
     await addDoc(eventsCollection, newEvent);
     setShowModal(false);
-    setSelectedEmployeeForAdd(null);
     setSelectedLeaveTypes([]);
     alert(
       canEdit
@@ -170,7 +189,42 @@ export default function Calendar() {
     await updateDoc(doc(db, "events", id), { status: "rejected" });
   }
 
-  // 🔄 Ganti bulan & tahun di calendar
+  /* =========================
+     Kelola Pegawai (Admin/Dev)
+  ==========================*/
+  async function addEmployee() {
+    const name = empNewName.trim();
+    if (!name) return;
+    // hindari duplikat nama sederhana
+    const exist = employees.some((e) => e.value.toLowerCase() === name.toLowerCase());
+    if (exist) return alert("Nama pegawai sudah ada.");
+    await addDoc(employeesCollection, { name });
+    setEmpNewName("");
+  }
+
+  function startEditEmployee(empId: string, current: string) {
+    setEmpEditId(empId);
+    setEmpEditName(current);
+  }
+
+  async function saveEditEmployee() {
+    if (!empEditId) return;
+    const name = empEditName.trim();
+    if (!name) return;
+    await updateDoc(doc(db, "employees", empEditId), { name });
+    setEmpEditId(null);
+    setEmpEditName("");
+  }
+
+  async function deleteEmployee(empId?: string) {
+    if (!empId) return;
+    if (!confirm("Hapus pegawai ini?")) return;
+    await deleteDoc(doc(db, "employees", empId));
+  }
+
+  /* =========================
+     Calendar nav
+  ==========================*/
   const handleMonthYearChange = () => {
     if (calendarRef.current) {
       const newDate = new Date(selectedYear, selectedMonth, 1);
@@ -179,6 +233,51 @@ export default function Calendar() {
       setBalineseHolidays(generateBalineseHolidays(selectedYear));
       setShowMonthPicker(false);
     }
+  };
+
+  /* =========================
+     Styling react-select (kontras)
+  ==========================*/
+  const selectStyles = {
+    control: (base: any) => ({
+      ...base,
+      borderRadius: 8,
+      borderColor: "#2563eb",
+      backgroundColor: "#ffffff",
+      minHeight: 40,
+      boxShadow: "none",
+      ":hover": { borderColor: "#1d4ed8" },
+    }),
+    menu: (base: any) => ({
+      ...base,
+      borderRadius: 8,
+      backgroundColor: "#ffffff",
+      overflow: "hidden",
+      zIndex: 30,
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? "#2563eb"
+        : state.isFocused
+        ? "#e0e7ff"
+        : "#ffffff",
+      color: state.isSelected ? "#ffffff" : "#111827",
+      cursor: "pointer",
+    }),
+    singleValue: (base: any) => ({
+      ...base,
+      color: "#111827",
+      fontWeight: 600,
+    }),
+    multiValue: (base: any) => ({
+      ...base,
+      backgroundColor: "#e5e7eb",
+    }),
+    multiValueLabel: (base: any) => ({
+      ...base,
+      color: "#111827",
+    }),
   };
 
   return (
@@ -256,17 +355,19 @@ export default function Calendar() {
               setSelectedDate(info.dateStr);
               setShowModal(true);
             }}
+            // warna event sudah fix: approved=biru, pending=kuning, rejected=abu-abu
             events={[
-              ...events.map((e) => ({
-                ...e,
-                backgroundColor:
-                  e.status === "pending"
-                    ? "#facc15"
-                    : e.status === "approved"
+              ...events.map((e) => {
+                const status = (e.status || "pending").toLowerCase();
+                const bg =
+                  status === "approved"
                     ? "#2563eb"
-                    : "#9ca3af",
-                textColor: e.status === "pending" ? "#000" : "#fff",
-              })),
+                    : status === "pending"
+                    ? "#facc15"
+                    : "#9ca3af";
+                const txt = status === "pending" ? "#000" : "#fff";
+                return { ...e, backgroundColor: bg, textColor: txt };
+              }),
               ...holidays,
               ...balineseHolidays,
             ]}
@@ -287,6 +388,7 @@ export default function Calendar() {
               ["#facc15", "Pending Persetujuan"],
               ["#dc2626", "Libur Nasional"],
               ["#16a34a", "Hari Raya Bali"],
+              ["#9ca3af", "Ditolak"],
             ].map(([color, label]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div
@@ -406,14 +508,14 @@ export default function Calendar() {
           </div>
         )}
 
-        {/* === TABEL PENGAJUAN PENDING === */}
+        {/* === TABEL PENGAJUAN PENDING (ADMIN) === */}
         {canEdit && (
           <div
             style={{
               background: "#fff",
               borderRadius: 16,
               padding: "24px",
-              marginBottom: 40,
+              marginBottom: 24,
               boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
             }}
           >
@@ -459,6 +561,7 @@ export default function Calendar() {
                               borderRadius: 6,
                               padding: "6px 12px",
                               marginRight: 8,
+                              cursor: "pointer",
                             }}
                           >
                             Setujui
@@ -471,6 +574,7 @@ export default function Calendar() {
                               border: "none",
                               borderRadius: 6,
                               padding: "6px 12px",
+                              cursor: "pointer",
                             }}
                           >
                             Tolak
@@ -497,6 +601,7 @@ export default function Calendar() {
             borderRadius: 16,
             padding: "32px 24px",
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+            marginBottom: 24,
           }}
         >
           <div
@@ -517,35 +622,17 @@ export default function Calendar() {
             >
               🔍 Rekap Hari Libur Pegawai
             </h2>
-            <div style={{ width: 260, marginTop: 10 }}>
+            <div style={{ width: 280, marginTop: 10 }}>
               <Select
                 options={[{ value: "all", label: "Tampilkan Semua Pegawai" }, ...employees]}
                 defaultValue={{ value: "all", label: "Tampilkan Semua Pegawai" }}
                 onChange={(opt) => setSelectedEmployee(opt?.value || "all")}
-                styles={{
-                  control: (base) => ({
-                    ...base,
-                    borderRadius: 8,
-                    borderColor: "#2563eb",
-                    backgroundColor: "#f9fafb",
-                  }),
-                  singleValue: (base) => ({
-                    ...base,
-                    color: "#111827",
-                    fontWeight: 600,
-                  }),
-                }}
+                styles={selectStyles}
               />
             </div>
           </div>
-          
 
-
-
-
-
-
-	<div style={{ overflowX: "auto" }}>
+          <div style={{ overflowX: "auto" }}>
             <table
               style={{
                 width: "100%",
@@ -570,7 +657,7 @@ export default function Calendar() {
                 {(() => {
                   const grouped: Record<string, Record<string, number>> = {};
                   events
-                    .filter((e) => e.status === "approved")
+                    .filter((e) => (e.status || "").toLowerCase() === "approved")
                     .forEach((e) => {
                       const emp = e.employee || "(Tidak diketahui)";
                       if (!grouped[emp])
@@ -580,11 +667,12 @@ export default function Calendar() {
                           "Cuti Penting": 0,
                           "Cuti Penangguhan": 0,
                         };
-                      const types = Array.isArray(e.leaveType)
-                        ? e.leaveType
-                        : typeof e.leaveType === "string"
-                        ? [e.leaveType]
-                        : [];
+                      const types =
+                        Array.isArray(e.leaveType)
+                          ? e.leaveType
+                          : typeof e.leaveType === "string"
+                          ? [e.leaveType]
+                          : [];
                       types.forEach((t) => {
                         if (grouped[emp][t] !== undefined) grouped[emp][t]++;
                       });
@@ -610,12 +698,8 @@ export default function Calendar() {
                             borderBottom: "1px solid #e5e7eb",
                             transition: "background 0.2s ease",
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background = "#e0e7ff")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "transparent")
-                          }
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e7ff")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <td style={{ padding: 12, fontWeight: 600 }}>{emp}</td>
                           <td style={{ padding: 12 }}>{rec["Sakit"]}</td>
@@ -636,14 +720,7 @@ export default function Calendar() {
                     })
                   ) : (
                     <tr>
-                      <td
-                        colSpan={6}
-                        style={{
-                          padding: 14,
-                          textAlign: "center",
-                          color: "#6b7280",
-                        }}
-                      >
+                      <td colSpan={6} style={{ padding: 14, textAlign: "center", color: "#6b7280" }}>
                         Tidak ada data pegawai ditemukan.
                       </td>
                     </tr>
@@ -653,9 +730,170 @@ export default function Calendar() {
             </table>
           </div>
         </div>
+
+        {/* === KELOLA PEGAWAI (ADMIN/DEV) === */}
+        {canEdit && (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: "24px",
+              marginBottom: 40,
+              boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+            }}
+          >
+            <h2 style={{ color: "#1e3a8a", fontWeight: 700, fontSize: "1.4rem", marginBottom: 12 }}>
+              👥 Kelola Pegawai
+            </h2>
+
+            {/* Tambah pegawai */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <input
+                value={empNewName}
+                onChange={(e) => setEmpNewName(e.target.value)}
+                placeholder="Nama pegawai baru"
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #d1d5db",
+                }}
+              />
+              <button
+                onClick={addEmployee}
+                style={{
+                  background: "#2563eb",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "10px 16px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Tambah
+              </button>
+            </div>
+
+            {/* Tabel pegawai */}
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  background: "#f9fafb",
+                }}
+              >
+                <thead>
+                  <tr style={{ background: "#f3f4f6" }}>
+                    <th style={{ padding: 12, textAlign: "left" }}>Nama</th>
+                    <th style={{ padding: 12, textAlign: "left" }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.length ? (
+                    employees.map((emp) => (
+                      <tr key={emp.id}>
+                        <td style={{ padding: 12 }}>
+                          {empEditId === emp.id ? (
+                            <input
+                              value={empEditName}
+                              onChange={(e) => setEmpEditName(e.target.value)}
+                              style={{
+                                padding: "8px 10px",
+                                borderRadius: 8,
+                                border: "1px solid #d1d5db",
+                                width: "100%",
+                                maxWidth: 360,
+                              }}
+                            />
+                          ) : (
+                            <span style={{ fontWeight: 600 }}>{emp.label}</span>
+                          )}
+                        </td>
+                        <td style={{ padding: 12 }}>
+                          {empEditId === emp.id ? (
+                            <>
+                              <button
+                                onClick={saveEditEmployee}
+                                style={{
+                                  background: "#16a34a",
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  marginRight: 8,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Simpan
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEmpEditId(null);
+                                  setEmpEditName("");
+                                }}
+                                style={{
+                                  background: "#9ca3af",
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Batal
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => startEditEmployee(emp.id!, emp.value)}
+                                style={{
+                                  background: "#2563eb",
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  marginRight: 8,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => deleteEmployee(emp.id)}
+                                style={{
+                                  background: "#dc2626",
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Hapus
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={2} style={{ padding: 12, textAlign: "center" }}>
+                        Belum ada pegawai.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* === MODAL TAMBAH LIBUR (untuk viewer & admin) === */}
+      {/* === MODAL TAMBAH LIBUR (viewer hanya pilih jenis) === */}
       {showModal && (
         <div
           style={{
@@ -677,42 +915,29 @@ export default function Calendar() {
               borderRadius: 12,
               padding: 24,
               width: "90%",
-              maxWidth: 400,
+              maxWidth: 420,
               color: "#111827",
             }}
           >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
+            <h3 style={{ textAlign: "center", color: "#1e3a8a", marginBottom: 12 }}>
               {canEdit ? "Tambah Hari Libur Pegawai" : "Ajukan Hari Libur"}
             </h3>
-            <label style={{ fontWeight: 600 }}>Pilih Pegawai:</label>
-            <Select
-              options={
-                canEdit
-                  ? employees
-                  : [
-                      {
-                        value: userName,
-                        label: userName,
-                      },
-                    ]
-              }
-              defaultValue={
-                canEdit
-                  ? undefined
-                  : { value: userName, label: userName }
-              }
-              isDisabled={!canEdit}
-              onChange={(opt) => setSelectedEmployeeForAdd(opt ? opt.value : null)}
-              placeholder="Pilih nama pegawai..."
-              isSearchable
-            />
-            <label
-              style={{
-                marginTop: 12,
-                display: "block",
-                fontWeight: 600,
-              }}
-            >
+
+            {/* viewer tidak pilih pegawai */}
+            {!canEdit ? (
+              <div
+                style={{
+                  marginBottom: 8,
+                  fontSize: ".95rem",
+                  color: "#374151",
+                }}
+              >
+                Pegawai: <strong>{userName}</strong>
+              </div>
+            ) : null}
+
+            {/* jenis libur (multi) */}
+            <label style={{ fontWeight: 600, display: "block", marginTop: 8, marginBottom: 6 }}>
               Jenis Libur:
             </label>
             <Select
@@ -723,11 +948,11 @@ export default function Calendar() {
                 { value: "Cuti Penting", label: "Cuti Penting" },
                 { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
               ]}
-              onChange={(opts) =>
-                setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
-              }
+              onChange={(opts) => setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])}
               placeholder="Pilih jenis libur..."
+              styles={selectStyles}
             />
+
             <div
               style={{
                 display: "flex",
@@ -750,7 +975,10 @@ export default function Calendar() {
                 Simpan
               </button>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedLeaveTypes([]);
+                }}
                 style={{
                   background: "#9ca3af",
                   color: "#fff",
