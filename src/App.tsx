@@ -1,28 +1,25 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Login from "./Login";
 import Register from "./Register";
-import Calendar from "./calendar"; // ✅ perbaikan huruf besar
+import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
 import ManageEmployees from "./ManageEmployees";
 import { auth, db } from "./firebaseConfig";
 import { onSnapshot, doc } from "firebase/firestore";
 
 // ✅ Komponen PrivateRoute
-function PrivateRoute({
-  children,
-  allowedRoles,
-}: {
-  children: React.ReactElement;
-  allowedRoles: string[];
-}) {
+function PrivateRoute({ children, allowedRoles }: { children: React.ReactElement; allowedRoles: string[] }) {
   const role = localStorage.getItem("role");
   if (!role) return <Navigate to="/login" replace />;
   if (!allowedRoles.includes(role)) return <Navigate to="/calendar" replace />;
   return children;
 }
 
-export default function App() {
+// ✅ Komponen Wrapper untuk handle auth/role logic
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [_role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,6 +29,7 @@ export default function App() {
         setRole(null);
         localStorage.removeItem("role");
         setLoading(false);
+        if (location.pathname !== "/login") navigate("/login", { replace: true });
         return;
       }
 
@@ -50,17 +48,23 @@ export default function App() {
             setRole(newRole);
           }
 
-          // ✅ Redirect otomatis berdasarkan role
+          // ✅ Navigasi internal TANPA reload
           if (newRole === "admin" || newRole === "viewer") {
-            window.location.href = "/calendar";
+            if (location.pathname === "/login" || location.pathname === "/register") {
+              navigate("/calendar", { replace: true });
+            }
           } else if (newRole === "dev") {
-            window.location.href = "/dashboard";
+            if (location.pathname === "/login" || location.pathname === "/register") {
+              navigate("/dashboard", { replace: true });
+            }
           }
-
         } else {
           console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
-          setRole("viewer");
           localStorage.setItem("role", "viewer");
+          setRole("viewer");
+          if (location.pathname === "/login" || location.pathname === "/register") {
+            navigate("/calendar", { replace: true });
+          }
         }
 
         setLoading(false);
@@ -70,7 +74,7 @@ export default function App() {
     });
 
     return () => unsubscribeAuth();
-  }, []);
+  }, [navigate, location.pathname]);
 
   if (loading) {
     return (
@@ -91,32 +95,44 @@ export default function App() {
   }
 
   return (
+    <Routes>
+      {/* Auth Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Kalender */}
+      <Route path="/calendar" element={<Calendar />} />
+
+      {/* CRUD Pegawai (admin & dev) */}
+      <Route
+        path="/manage-employees"
+        element={
+          <PrivateRoute allowedRoles={["admin", "dev"]}>
+            <ManageEmployees />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Dashboard Dev */}
+      <Route
+        path="/dashboard"
+        element={
+          <PrivateRoute allowedRoles={["dev"]}>
+            <Dashboard />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Default route */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/calendar" element={<Calendar />} />
-
-        <Route
-          path="/manage-employees"
-          element={
-            <PrivateRoute allowedRoles={["admin", "dev"]}>
-              <ManageEmployees />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute allowedRoles={["dev"]}>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <AppContent />
     </Router>
   );
 }
