@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./Login";
 import Register from "./Register";
-import Calendar from "./calendar";
+import Calendar from "./calendar"; // ✅ perbaikan huruf besar
 import Dashboard from "./Dashboard";
 import ManageEmployees from "./ManageEmployees";
 import { auth, db } from "./firebaseConfig";
 import { onSnapshot, doc } from "firebase/firestore";
 
-// ✅ Komponen PrivateRoute (proteksi berdasarkan role)
+// ✅ Komponen PrivateRoute
 function PrivateRoute({
   children,
   allowedRoles,
@@ -27,7 +27,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ✅ Listener auth Firebase
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (!user) {
         setRole(null);
@@ -36,7 +35,6 @@ export default function App() {
         return;
       }
 
-      // ✅ Dengarkan perubahan role realtime
       const roleRef = doc(db, "roles", user.uid);
       const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -51,23 +49,29 @@ export default function App() {
             localStorage.setItem("role", newRole);
             setRole(newRole);
           }
+
+          // ✅ Redirect otomatis berdasarkan role
+          if (newRole === "admin" || newRole === "viewer") {
+            window.location.href = "/calendar";
+          } else if (newRole === "dev") {
+            window.location.href = "/dashboard";
+          }
+
         } else {
-          console.warn("⚠️ Role tidak ditemukan di Firestore");
+          console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
           setRole("viewer");
+          localStorage.setItem("role", "viewer");
         }
 
         setLoading(false);
       });
 
-      // ✅ Bersihkan listener ketika auth berubah
       return () => unsubscribeRole();
     });
 
-    // ✅ Bersihkan listener auth di unmount
     return () => unsubscribeAuth();
   }, []);
 
-  // ✅ Loading screen sederhana
   if (loading) {
     return (
       <div
@@ -89,14 +93,10 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
-        {/* Kalender */}
         <Route path="/calendar" element={<Calendar />} />
 
-        {/* CRUD Pegawai (admin & dev) */}
         <Route
           path="/manage-employees"
           element={
@@ -106,7 +106,6 @@ export default function App() {
           }
         />
 
-        {/* Dashboard Dev */}
         <Route
           path="/dashboard"
           element={
@@ -116,7 +115,6 @@ export default function App() {
           }
         />
 
-        {/* Default route */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
