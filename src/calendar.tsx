@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
@@ -27,23 +27,34 @@ interface CalendarEvent {
 }
 
 export default function Calendar({ canEdit }: { canEdit: boolean }) {
+  // 🔹 State utama
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [_holidays, setHolidays] = useState<CalendarEvent[]>([]);
+  const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>("all");
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  //@ts-ignore
   const [showHolidays, setShowHolidays] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
+  // 🔹 Month picker
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const calendarRef = useRef<any>(null);
+
+  // 🔹 Navigasi dan data Firestore
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // 🔄 Firestore realtime events
+  // 🔄 Realtime event
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -55,7 +66,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => unsub();
   }, []);
 
-  // 👥 Load data pegawai
+  // 👥 Load pegawai
   useEffect(() => {
     const loadEmployees = async () => {
       const snap = await getDocs(employeesCollection);
@@ -69,57 +80,31 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     loadEmployees();
   }, []);
 
-useEffect(() => {
-  async function fetchHolidays() {
+  // 🇮🇩 Fetch libur nasional (Nager.Date)
+  async function fetchHolidays(year: number) {
     try {
-      const currentYear = new Date().getFullYear();
-      const countryCode = "ID"; // kode ISO untuk Indonesia
-      const url = `https://date.nager.at/api/v3/PublicHolidays/${currentYear}/${countryCode}`;
-
-      console.log("🌐 Fetching Nager.Date holidays from:", url);
-
-      const resp = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("🔁 Response status:", resp.status);
-
-      if (!resp.ok) {
-        const errText = await resp.text();
-        console.error("❌ Error fetching Nager.Date:", resp.status, errText);
-        return;
-      }
-
+      const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
+      console.log("🌐 Fetching Nager.Date holidays:", url);
+      const resp = await fetch(url);
+      if (!resp.ok) return console.error("❌ Error:", resp.status);
       const data = await resp.json();
-      console.log("📦 Data from Nager:", data);
-
-      if (!Array.isArray(data) || data.length === 0) {
-        console.warn("⚠️ Data Nager kosong atau bukan array:", data);
-        return;
-      }
-
-      const formatted = data.map((item: any) => ({
-        id: item.date, // gunakan date sebagai ID
-        title: `🇮🇩 ${item.localName}`,
-        start: item.date,
-        end: item.date,
+      const formatted = data.map((d: any) => ({
+        id: d.date,
+        title: `🇮🇩 ${d.localName}`,
+        start: d.date,
+        end: d.date,
         backgroundColor: "#dc2626",
-        textColor: "#ffffff",
+        textColor: "#fff",
       }));
-
-      console.log("✅ Formatted holidays:", formatted);
       setHolidays(formatted);
-    } catch (err) {
-      console.error("⚠️ fetchHolidays error:", err);
+    } catch (e) {
+      console.error("⚠️ fetchHolidays error:", e);
     }
   }
 
-  fetchHolidays();
-}, []);
-
+  useEffect(() => {
+    fetchHolidays(new Date().getFullYear());
+  }, []);
 
   // 🚪 Logout
   async function handleLogout() {
@@ -128,30 +113,48 @@ useEffect(() => {
     navigate("/login");
   }
 
-  // ➕ Tambah jadwal libur pegawai
+  // ➕ Tambah jadwal libur
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
-    try {
-      await addDoc(eventsCollection, {
-        title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
-        employee: selectedEmployeeForAdd,
-        leaveType: selectedLeaveTypes,
-        start: selectedDate,
-        end: selectedDate,
-      });
-      setShowModal(false);
-      setSelectedLeaveTypes([]);
-      setSelectedEmployeeForAdd(null);
-    } catch (err) {
-      console.error("Gagal menambah event:", err);
-    }
+    await addDoc(eventsCollection, {
+      title: `${selectedEmployeeForAdd} - ${selectedLeaveTypes.join(", ")}`,
+      employee: selectedEmployeeForAdd,
+      leaveType: selectedLeaveTypes,
+      start: selectedDate,
+      end: selectedDate,
+    });
+    setShowModal(false);
+    setSelectedEmployeeForAdd(null);
+    setSelectedLeaveTypes([]);
   }
 
-  // 🔀 Gabungkan data event pegawai dan libur nasional
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
- 
+  // 🗓️ Pindah bulan & tahun
+  const handleMonthYearChange = () => {
+    if (calendarRef.current) {
+      const newDate = new Date(selectedYear, selectedMonth, 1);
+      calendarRef.current.getApi().gotoDate(newDate);
+      fetchHolidays(selectedYear);
+      setShowMonthPicker(false);
+    }
+  };
+
+  // 🖱️ Klik judul bulan/tahun
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector(".fc-toolbar-title");
+      if (el) {
+        el.addEventListener("click", () => setShowMonthPicker(true));
+        el.addEventListener("touchstart", () => setShowMonthPicker(true));
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  // ===============================
+  // 🔷 RETURN (UI)
+  // ===============================
   return (
     <div
       style={{
@@ -162,41 +165,21 @@ useEffect(() => {
         flexDirection: "column",
         alignItems: "center",
         padding: "40px 16px",
-        overflowX: "hidden",
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 1200,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
+      <div style={{ width: "100%", maxWidth: 1200 }}>
         {/* HEADER */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-            maxWidth: 1000,
-            marginBottom: 30,
             flexWrap: "wrap",
+            marginBottom: 30,
           }}
         >
-          <h1
-            style={{
-              color: "#fff",
-              fontSize: "1.8rem",
-              fontWeight: 700,
-              margin: 0,
-            }}
-          >
+          <h1 style={{ color: "#fff", fontSize: "1.8rem" }}>
             📅 Jadwal Hari Libur — Halo, {userName}
           </h1>
-
           <div style={{ display: "flex", gap: 10 }}>
             {(role === "admin" || role === "dev") && (
               <button
@@ -207,8 +190,6 @@ useEffect(() => {
                   border: "none",
                   borderRadius: 8,
                   padding: "10px 18px",
-                  fontWeight: 600,
-                  cursor: "pointer",
                 }}
               >
                 👥 Kelola Pegawai
@@ -222,8 +203,6 @@ useEffect(() => {
                 border: "none",
                 borderRadius: 8,
                 padding: "10px 18px",
-                fontWeight: 600,
-                cursor: "pointer",
               }}
             >
               Logout
@@ -234,117 +213,43 @@ useEffect(() => {
         {/* CALENDAR */}
         <div
           style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-          width: "100%",
-          maxWidth: 1200, // ⬅️ Tambahkan lebar lebih besar
-          padding: "32px 24px",
-          marginBottom: 50,
-          overflow: "hidden",
-          boxSizing: "border-box",
+            background: "#fff",
+            borderRadius: 16,
+            padding: "32px 24px",
+            marginBottom: 50,
+            boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-              marginBottom: 10,
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
+            headerToolbar={{
+              left: "prev,next",
+              center: "title",
+              right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
             }}
-          >
-            <label
-              style={{
-                color: "#1e3a8a",
-                fontWeight: 600,
-                marginRight: 10,
-              }}
-            >
-              Tampilkan Libur Nasional
-            </label>
-            <input
-              type="checkbox"
-              checked={showHolidays}
-              onChange={(e) => setShowHolidays(e.target.checked)}
-              style={{ width: 18, height: 18, cursor: "pointer" }}
-            />
-          </div>
-
-<FullCalendar
-  plugins={[dayGridPlugin, interactionPlugin]}
-  initialView={window.innerWidth < 600 ? "dayGridWeek" : "dayGridMonth"}
-  headerToolbar={{
-    left: "prev,next",
-    center: "title",
-    right: window.innerWidth < 600 ? "" : "dayGridMonth,dayGridWeek",
-  }}
-  events={[
-    ...events.map(e => ({
-      ...e,
-      backgroundColor: "#2563eb", // 🔹 biru untuk jadwal pegawai
-      textColor: "#ffffff",
-    })),
-    ...(showHolidays
-      ? _holidays.map(h => ({
-          ...h,
-          backgroundColor: "#dc2626", // 🔴 merah untuk libur nasional
-          textColor: "#ffffff",
-        }))
-      : []),
-  ]}
-  eventClick={(info) => {
-    if (!canEdit) return;
-    if (info.event.title.startsWith("🇮🇩")) return; // ⛔ libur nasional tidak bisa dihapus
-    setSelectedEventId(info.event.id);
-    setShowDeleteModal(true);
-  }}
-  dateClick={(info) => {
-    if (canEdit) {
-      setSelectedDate(info.dateStr);
-      setShowModal(true);
-    }
-  }}
-  contentHeight="auto"
-  height="auto"
-  themeSystem="standard"
-/>
-
-
-{/* 🔹 Legenda Warna */}
-<div
-  style={{
-    display: "flex",
-    justifyContent: "center",
-    gap: 20,
-    marginTop: 16,
-    flexWrap: "wrap",
-  }}
->
-  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-    <div
-      style={{
-        width: 16,
-        height: 16,
-        background: "#2563eb", // biru
-        borderRadius: 4,
-      }}
-    ></div>
-    <span style={{ color: "#1e3a8a", fontWeight: 600 }}>Jadwal Pegawai</span>
-  </div>
-
-  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-    <div
-      style={{
-        width: 16,
-        height: 16,
-        background: "#dc2626", // merah
-        borderRadius: 4,
-      }}
-    ></div>
-    <span style={{ color: "#991b1b", fontWeight: 600 }}>Libur Nasional</span>
-  </div>
-</div>
-
+            events={[
+              ...events.map((e) => ({
+                ...e,
+                backgroundColor: "#2563eb",
+                textColor: "#fff",
+              })),
+              ...(showHolidays ? holidays : []),
+            ]}
+            eventClick={(info) => {
+              if (!canEdit) return;
+              if (info.event.title.startsWith("🇮🇩")) return;
+              setSelectedEventId(info.event.id);
+              setShowDeleteModal(true);
+            }}
+            dateClick={(info) => {
+              if (canEdit) {
+                setSelectedDate(info.dateStr);
+                setShowModal(true);
+              }
+            }}
+          />
         </div>
 
         {/* REKAP DATA PEGAWAI */}
@@ -465,6 +370,70 @@ useEffect(() => {
         </div>
       </div>
 
+      {/* 🔹 Picker Bulan & Tahun */}
+      {showMonthPicker && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 2000,
+          }}
+          onClick={() => setShowMonthPicker(false)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: 20,
+              color: "#111827",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ color: "#1e3a8a" }}>Pilih Bulan & Tahun</h3>
+            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <option key={i} value={i}>
+                    {new Date(0, i).toLocaleString("id-ID", { month: "long" })}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
+                  <option key={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={handleMonthYearChange}
+              style={{
+                marginTop: 15,
+                background: "#2563eb",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 16px",
+              }}
+            >
+              Tampilkan
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MODAL TAMBAH LIBUR */}
       {showModal && (
         <div
@@ -491,10 +460,7 @@ useEffect(() => {
               color: "#111827",
             }}
           >
-            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>
-              Tambah Hari Libur
-            </h3>
-
+            <h3 style={{ textAlign: "center", color: "#1e3a8a" }}>Tambah Hari Libur</h3>
             <label style={{ fontWeight: 600 }}>Pilih Pegawai:</label>
             <Select
               options={employees}
@@ -502,12 +468,7 @@ useEffect(() => {
               placeholder="Pilih nama pegawai..."
               isSearchable
             />
-
-            <label
-              style={{ marginTop: 12, display: "block", fontWeight: 600 }}
-            >
-              Jenis Libur:
-            </label>
+            <label style={{ marginTop: 12, display: "block", fontWeight: 600 }}>Jenis Libur:</label>
             <Select
               isMulti
               options={[
@@ -516,12 +477,9 @@ useEffect(() => {
                 { value: "Cuti Penting", label: "Cuti Penting" },
                 { value: "Cuti Penangguhan", label: "Cuti Penangguhan" },
               ]}
-              onChange={(opts) =>
-                setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])
-              }
+              onChange={(opts) => setSelectedLeaveTypes(opts ? opts.map((o) => o.value) : [])}
               placeholder="Pilih jenis libur..."
             />
-
             <div
               style={{
                 display: "flex",
@@ -560,75 +518,76 @@ useEffect(() => {
           </div>
         </div>
       )}
-      {/* 🗑️ Modal Konfirmasi Hapus Jadwal */}
-{showDeleteModal && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 1100,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: 24,
-        width: "90%",
-        maxWidth: 400,
-        color: "#111827",
-        textAlign: "center",
-      }}
-    >
-      <h3 style={{ color: "#1e3a8a", marginBottom: 16 }}>
-        Apakah Anda ingin menghapus jadwal ini?
-      </h3>
-      <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
-        <button
-          onClick={async () => {
-            if (selectedEventId) {
-              await deleteDoc(doc(db, "events", selectedEventId));
-            }
-            setShowDeleteModal(false);
-            setSelectedEventId(null);
-          }}
+
+      {/* 🗑️ Modal Hapus Jadwal */}
+      {showDeleteModal && (
+        <div
           style={{
-            background: "#dc2626",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontWeight: 600,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1100,
           }}
         >
-          Ya
-        </button>
-        <button
-          onClick={() => setShowDeleteModal(false)}
-          style={{
-            background: "#9ca3af",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
-          Batal
-        </button>
-      </div>
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: 24,
+              width: "90%",
+              maxWidth: 400,
+              color: "#111827",
+              textAlign: "center",
+            }}
+          >
+            <h3 style={{ color: "#1e3a8a", marginBottom: 16 }}>
+              Apakah Anda ingin menghapus jadwal ini?
+            </h3>
+            <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+              <button
+                onClick={async () => {
+                  if (selectedEventId) {
+                    await deleteDoc(doc(db, "events", selectedEventId));
+                  }
+                  setShowDeleteModal(false);
+                  setSelectedEventId(null);
+                }}
+                style={{
+                  background: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Ya
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                style={{
+                  background: "#9ca3af",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}
-    </div>    
   );
 }
