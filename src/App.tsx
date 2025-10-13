@@ -23,7 +23,7 @@ function PrivateRoute({
 }
 
 export default function App() {
-  const [role, setRole] = useState<string | null>(null);
+  const [_role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -94,10 +94,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Kalender */}
-        <Route
-          path="/calendar"
-          element={<Calendar canEdit={role === "admin" || role === "dev"} />}
-        />
+        <Route path="/calendar" element={<Calendar />} />
 
         {/* CRUD Pegawai (admin & dev) */}
         <Route
