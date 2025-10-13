@@ -30,6 +30,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   // 🔹 State utama
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [holidays, setHolidays] = useState<CalendarEvent[]>([]);
+  const [balineseHolidays, setBalineseHolidays] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<{ value: string; label: string }[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>("all");
   const [showModal, setShowModal] = useState(false);
@@ -37,7 +38,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [showHolidays, setShowHolidays] = useState(true);
-  const [showBalineseHolidays, setShowBalineseHolidays] = useState(false);
+  const [showBalineseHolidays, setShowBalineseHolidays] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -47,14 +48,14 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const calendarRef = useRef<any>(null);
 
-  // 🔹 Navigasi dan data Firestore
+  // 🔹 Firebase config
   const navigate = useNavigate();
   const eventsCollection = collection(db, "events");
   const employeesCollection = collection(db, "employees");
   const role = localStorage.getItem("role");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  // 🔄 Realtime event
+  // 🔄 Firestore realtime
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -84,6 +85,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
   async function fetchHolidays(year: number) {
     try {
       const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
+      console.log("🌐 Fetching Nager.Date holidays:", url);
       const resp = await fetch(url);
       if (!resp.ok) return console.error("❌ Error:", resp.status);
       const data = await resp.json();
@@ -101,29 +103,42 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     }
   }
 
-  useEffect(() => {
-    fetchHolidays(new Date().getFullYear());
-  }, []);
-
-  // 📅 Hari Raya Bali (subset penting)
-  const balineseHolidays2025: CalendarEvent[] = [
-    { title: "Buda Keliwon Ugu", start: "2025-01-08" },
-    { title: "Tumpek Wayang", start: "2025-01-18" },
-    { title: "Hari Siwa Ratri", start: "2025-01-27" },
-    { title: "Hari Raya Saraswati", start: "2025-02-08" },
-    { title: "Tumpek Landep", start: "2025-02-22" },
-    { title: "Hari Raya Nyepi", start: "2025-03-29" },
-    { title: "Ngembak Geni", start: "2025-03-30" },
-    { title: "Hari Raya Galungan", start: "2025-04-23" },
-    { title: "Hari Raya Kuningan", start: "2025-05-03" },
-    { title: "Tumpek Krulut", start: "2025-06-07" },
-    { title: "Tumpek Kandang", start: "2025-07-12" },
-    { title: "Tumpek Wayang", start: "2025-08-16" },
-    { title: "Hari Raya Saraswati", start: "2025-09-06" },
-    { title: "Tumpek Uduh", start: "2025-10-25" },
-    { title: "Hari Raya Galungan", start: "2025-11-19" },
-    { title: "Hari Raya Kuningan", start: "2025-11-29" },
+  // 🎋 Data hari raya Bali (dasar untuk tiap tahun)
+  const baseBalineseHolidays = [
+    { title: "Buda Keliwon Ugu", date: "01-08" },
+    { title: "Tumpek Wayang", date: "01-18" },
+    { title: "Hari Siwa Ratri", date: "01-27" },
+    { title: "Hari Raya Saraswati", date: "02-08" },
+    { title: "Tumpek Landep", date: "02-22" },
+    { title: "Hari Raya Nyepi", date: "03-29" },
+    { title: "Ngembak Geni", date: "03-30" },
+    { title: "Hari Raya Galungan", date: "04-23" },
+    { title: "Hari Raya Kuningan", date: "05-03" },
+    { title: "Tumpek Krulut", date: "06-07" },
+    { title: "Tumpek Kandang", date: "07-12" },
+    { title: "Tumpek Wayang", date: "08-16" },
+    { title: "Hari Raya Saraswati", date: "09-06" },
+    { title: "Tumpek Uduh", date: "10-25" },
+    { title: "Hari Raya Galungan", date: "11-19" },
+    { title: "Hari Raya Kuningan", date: "11-29" },
   ];
+
+  // 📅 Generate data Hari Raya Bali per tahun
+  const generateBalineseHolidays = (year: number) => {
+    return baseBalineseHolidays.map((b) => ({
+      id: `${year}-${b.date}-${b.title}`,
+      title: `🌺 ${b.title}`,
+      start: `${year}-${b.date}`,
+      backgroundColor: "#16a34a",
+      textColor: "#fff",
+    }));
+  };
+
+  // ⏳ Initial fetch
+  useEffect(() => {
+    fetchHolidays(selectedYear);
+    setBalineseHolidays(generateBalineseHolidays(selectedYear));
+  }, [selectedYear]);
 
   // 🚪 Logout
   async function handleLogout() {
@@ -132,7 +147,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     navigate("/login");
   }
 
-  // ➕ Tambah jadwal libur
+  // ➕ Tambah jadwal pegawai
   async function saveNewLeave() {
     if (!selectedEmployeeForAdd || selectedLeaveTypes.length === 0)
       return alert("Lengkapi semua data!");
@@ -148,17 +163,18 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     setSelectedLeaveTypes([]);
   }
 
-  // 🗓️ Pindah bulan & tahun
+  // 🗓️ Ganti bulan/tahun
   const handleMonthYearChange = () => {
     if (calendarRef.current) {
       const newDate = new Date(selectedYear, selectedMonth, 1);
       calendarRef.current.getApi().gotoDate(newDate);
       fetchHolidays(selectedYear);
+      setBalineseHolidays(generateBalineseHolidays(selectedYear));
       setShowMonthPicker(false);
     }
   };
 
-  // 🖱️ Klik judul bulan/tahun
+  // 📆 Klik judul bulan/tahun
   useEffect(() => {
     const observer = new MutationObserver(() => {
       const el = document.querySelector(".fc-toolbar-title");
@@ -171,9 +187,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
     return () => observer.disconnect();
   }, []);
 
-  // ===============================
-  // 🔷 RETURN (UI)
-  // ===============================
   return (
     <div
       style={{
@@ -239,7 +252,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
-          {/* Checkbox Filter */}
           <div
             style={{
               display: "flex",
@@ -267,7 +279,6 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             />
           </div>
 
-          {/* Calendar */}
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, interactionPlugin]}
@@ -284,19 +295,13 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
                 textColor: "#fff",
               })),
               ...(showHolidays ? holidays : []),
-              ...(showBalineseHolidays
-                ? balineseHolidays2025.map((b) => ({
-                    ...b,
-                    backgroundColor: "#16a34a",
-                    textColor: "#fff",
-                  }))
-                : []),
+              ...(showBalineseHolidays ? balineseHolidays : []),
             ]}
             eventClick={(info) => {
               if (!canEdit) return;
               if (
                 info.event.title.startsWith("🇮🇩") ||
-                balineseHolidays2025.some((b) => b.title === info.event.title)
+                info.event.title.startsWith("🌺")
               )
                 return;
               setSelectedEventId(info.event.id);
@@ -310,7 +315,7 @@ export default function Calendar({ canEdit }: { canEdit: boolean }) {
             }}
           />
 
-          {/* Legend */}
+          {/* Legenda */}
           <div
             style={{
               display: "flex",
