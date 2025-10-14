@@ -106,93 +106,97 @@ async function fetchHolidays(year: number) {
   }
 }
 
-// ==========================
-// 🔮 HARI RAYA BALI OTOMATIS
-// ==========================
+/* ========== Hari Raya Bali Otomatis (Galungan, Kuningan, Nyepi) ========== */
 
-// Galungan terjadi setiap 210 hari, dihitung dari Galungan 12 Februari 2025
-const REFERENCE_GALUNGAN = new Date("2025-02-12");
-const CYCLE_DAYS = 210;
+// Referensi Galungan terakhir (berdasarkan kalender Bali aktual)
+const REFERENCE_GALUNGAN = new Date("2025-02-12"); // Galungan terakhir diketahui
+const CYCLE_DAYS = 210; // 1 siklus pawukon
 
-function calculateGalunganAndKuningan(year: number): CalendarEvent[] {
-  const galunganList: CalendarEvent[] = [];
+// Daftar hari raya Bali yang mengikuti siklus Pawukon (offset dari Galungan)
+const BALINESE_CYCLES = [
+  { title: "🌺 Hari Raya Galungan", offset: 0 },
+  { title: "🌼 Hari Raya Kuningan", offset: 10 },
+  { title: "🌸 Hari Raya Saraswati", offset: -35 },
+  { title: "🕉️ Hari Raya Pagerwesi", offset: -31 },
+  { title: "⚔️ Tumpek Landep", offset: -105 },
+  { title: "🎶 Tumpek Krulut", offset: -84 },
+  { title: "🐂 Tumpek Kandang", offset: -63 },
+  { title: "🪵 Tumpek Uduh", offset: -42 },
+  { title: "🎭 Siwaratri", offset: -3 },
+];
+
+// Fungsi menghitung tanggal-tanggal Hari Raya berdasarkan siklus 210 hari
+function calculateBalineseCycle(year: number): CalendarEvent[] {
+  const events: CalendarEvent[] = [];
   const base = new Date(REFERENCE_GALUNGAN);
 
-  // Cakup 10 siklus ke belakang dan ke depan (±6 tahun)
+  // Hitung ±10 siklus ke depan dan belakang (sekitar 6 tahun range)
   for (let i = -10; i <= 10; i++) {
-    const galungan = new Date(base);
-    galungan.setDate(base.getDate() + i * CYCLE_DAYS);
+    const galunganBase = new Date(base);
+    galunganBase.setDate(base.getDate() + i * CYCLE_DAYS);
 
-    // Jika tahun-nya cocok, masukkan
-    if (galungan.getFullYear() === year) {
-      const galunganDate = galungan.toISOString().slice(0, 10);
-      galunganList.push({
-        id: `galungan-${galunganDate}`,
-        title: "🌺 Hari Raya Galungan",
-        start: galunganDate,
-        backgroundColor: "#16a34a",
-        textColor: "#fff",
-        allDay: true,
-      });
+    BALINESE_CYCLES.forEach((cycle) => {
+      const date = new Date(galunganBase);
+      date.setDate(galunganBase.getDate() + cycle.offset);
 
-      const kuningan = new Date(galungan);
-      kuningan.setDate(galungan.getDate() + 10);
-      const kuninganDate = kuningan.toISOString().slice(0, 10);
-      galunganList.push({
-        id: `kuningan-${kuninganDate}`,
-        title: "🌼 Hari Raya Kuningan",
-        start: kuninganDate,
-        backgroundColor: "#22c55e",
-        textColor: "#fff",
-        allDay: true,
-      });
-    }
+      if (date.getFullYear() === year) {
+        const dateStr = date.toISOString().slice(0, 10);
+        events.push({
+          id: `${cycle.title}-${dateStr}`,
+          title: cycle.title,
+          start: dateStr,
+          backgroundColor: "#16a34a", // 🟢 Hijau seragam untuk semua Hari Raya Bali
+          textColor: "#fff",
+          allDay: true,
+        });
+      }
+    });
   }
 
-  return galunganList;
+  return events;
 }
 
+// Fungsi utama: gabungkan Nyepi dari API dan hari raya pawukon
 async function fetchBalineseHolidays(year: number): Promise<CalendarEvent[]> {
   const holidays: CalendarEvent[] = [];
 
-  // Coba ambil Nyepi dari API (kalau gagal, fallback ke estimasi manual)
+  // 🌙 Ambil Hari Raya Nyepi dari API publik
   try {
     const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ID`);
     const data = await resp.json();
-    const nyepi = data.find((d: any) =>
-      d.localName.toLowerCase().includes("nyepi")
-    );
+    const nyepi = data.find((d: any) => d.localName.toLowerCase().includes("nyepi"));
+
     if (nyepi) {
       holidays.push({
         id: `nyepi-${nyepi.date}`,
         title: "🌙 Hari Raya Nyepi",
         start: nyepi.date,
-        backgroundColor: "#047857",
+        backgroundColor: "#16a34a", // Hijau juga agar seragam
         textColor: "#fff",
         allDay: true,
       });
     } else {
-      console.warn(`⚠️ Tidak ada data Nyepi untuk ${year}, menambahkan estimasi manual`);
+      // fallback manual jika tidak ditemukan di API
       holidays.push({
-        id: `nyepi-${year}-est`,
+        id: `nyepi-${year}-manual`,
         title: "🌙 Hari Raya Nyepi (Perkiraan)",
         start: `${year}-03-29`,
-        backgroundColor: "#047857",
+        backgroundColor: "#16a34a",
         textColor: "#fff",
         allDay: true,
       });
     }
   } catch (e) {
-    console.warn("⚠️ Gagal memuat Nyepi dari API:", e);
+    console.warn("⚠️ Gagal memuat data Nyepi dari API:", e);
   }
 
-  // Tambahkan Galungan & Kuningan
-  const galunganKuningan = calculateGalunganAndKuningan(year);
-  holidays.push(...galunganKuningan);
+  // 🌺 Tambahkan hari raya pawukon lainnya
+  holidays.push(...calculateBalineseCycle(year));
 
-  console.log("✅ Hari Raya Bali:", holidays);
+  console.log(`✅ Hari Raya Bali (${year}) ditemukan:`, holidays.length);
   return holidays;
 }
+
 
 useEffect(() => {
   console.log("📅 Memuat libur nasional & Hari Raya Bali untuk tahun", selectedYear);
