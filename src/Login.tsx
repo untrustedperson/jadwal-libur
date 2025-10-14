@@ -2,7 +2,7 @@ import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
-import { useNavigate, Link } from "react-router-dom"; // ✅ Tambahkan Link
+import { useNavigate, Link } from "react-router-dom"; // ✅ gunakan Link dari react-router-dom
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,7 +17,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // 🔹 Login Firebase
+      // 🔹 Login ke Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
@@ -25,7 +25,7 @@ export default function Login() {
       const userDoc = await getDoc(doc(db, "roles", uid));
       const role = userDoc.exists() ? userDoc.data().role : "viewer";
 
-      // 🔹 Simpan role
+      // 🔹 Simpan role di localStorage
       localStorage.setItem("role", role);
 
       // 🔁 Dengarkan perubahan role realtime
@@ -36,7 +36,7 @@ export default function Login() {
           if (newRole !== oldRole) {
             console.log("🔄 Role berubah:", oldRole, "→", newRole);
             localStorage.setItem("role", newRole);
-            navigate(0); // ✅ re-render tanpa reload penuh
+            navigate(0);
           }
         }
       });
