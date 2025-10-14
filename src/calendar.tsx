@@ -194,15 +194,56 @@ export default function Calendar() {
   };
 
   const selectStyles = {
-    control: (base: any) => ({
-      ...base,
-      borderRadius: 8,
+  control: (base: any, state: any) => ({
+    ...base,
+    borderRadius: 8,
+    borderColor: state.isFocused ? "#2563eb" : "#d1d5db",
+    backgroundColor: "#ffffff",
+    minHeight: 40,
+    boxShadow: state.isFocused ? "0 0 0 2px rgba(37,99,235,0.2)" : "none",
+    ":hover": {
       borderColor: "#2563eb",
-      backgroundColor: "#ffffff",
-      minHeight: 40,
-      boxShadow: "none",
-    }),
-  };
+    },
+  }),
+  menu: (base: any) => ({
+    ...base,
+    borderRadius: 8,
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+    zIndex: 50,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    backgroundColor: state.isSelected
+      ? "#2563eb"
+      : state.isFocused
+      ? "#e0e7ff"
+      : "#ffffff",
+    color: state.isSelected ? "#ffffff" : "#111827",
+    cursor: "pointer",
+    fontWeight: state.isSelected ? 600 : 500,
+  }),
+  singleValue: (base: any) => ({
+    ...base,
+    color: "#111827",
+    fontWeight: 600,
+  }),
+  input: (base: any) => ({
+    ...base,
+    color: "#111827",
+  }),
+  placeholder: (base: any) => ({
+    ...base,
+    color: "#6b7280",
+    fontWeight: 500,
+  }),
+  dropdownIndicator: (base: any) => ({
+    ...base,
+    color: "#2563eb",
+    ":hover": { color: "#1e40af" },
+  }),
+};
 
   return (
     <div
