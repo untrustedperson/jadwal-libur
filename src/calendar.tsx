@@ -106,31 +106,57 @@ async function fetchHolidays(year: number) {
   }
 }
 
-/* ========== Hari Raya Bali Otomatis (Galungan, Kuningan, Nyepi) ========== */
+// ==========================
+// 🔮 HARI RAYA BALI OTOMATIS
+// ==========================
 
-// Tanggal referensi Galungan terakhir (berdasarkan kalender Bali)
-const referenceGalungan = new Date("2025-02-12"); // Galungan terakhir diketahui
-const GALUNGAN_CYCLE_DAYS = 210; // Siklus Pawukon 210 hari
+// Galungan terjadi setiap 210 hari, dihitung dari Galungan 12 Februari 2025
+const REFERENCE_GALUNGAN = new Date("2025-02-12");
+const CYCLE_DAYS = 210;
 
-function calculateGalunganDates(year: number): Date[] {
-  const galungans: Date[] = [];
-  const start = new Date(referenceGalungan);
+function calculateGalunganAndKuningan(year: number): CalendarEvent[] {
+  const galunganList: CalendarEvent[] = [];
+  const base = new Date(REFERENCE_GALUNGAN);
 
-  // Cek 2 tahun ke belakang dan ke depan
-  for (let i = -3; i <= 3; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i * GALUNGAN_CYCLE_DAYS);
-    if (d.getFullYear() === year) galungans.push(d);
+  // Cakup 10 siklus ke belakang dan ke depan (±6 tahun)
+  for (let i = -10; i <= 10; i++) {
+    const galungan = new Date(base);
+    galungan.setDate(base.getDate() + i * CYCLE_DAYS);
+
+    // Jika tahun-nya cocok, masukkan
+    if (galungan.getFullYear() === year) {
+      const galunganDate = galungan.toISOString().slice(0, 10);
+      galunganList.push({
+        id: `galungan-${galunganDate}`,
+        title: "🌺 Hari Raya Galungan",
+        start: galunganDate,
+        backgroundColor: "#16a34a",
+        textColor: "#fff",
+        allDay: true,
+      });
+
+      const kuningan = new Date(galungan);
+      kuningan.setDate(galungan.getDate() + 10);
+      const kuninganDate = kuningan.toISOString().slice(0, 10);
+      galunganList.push({
+        id: `kuningan-${kuninganDate}`,
+        title: "🌼 Hari Raya Kuningan",
+        start: kuninganDate,
+        backgroundColor: "#22c55e",
+        textColor: "#fff",
+        allDay: true,
+      });
+    }
   }
 
-  return galungans;
+  return galunganList;
 }
 
-async function fetchBalineseHolidays(year: number) {
+async function fetchBalineseHolidays(year: number): Promise<CalendarEvent[]> {
   const holidays: CalendarEvent[] = [];
 
+  // Coba ambil Nyepi dari API (kalau gagal, fallback ke estimasi manual)
   try {
-    // Ambil data Nyepi dari API publik (kalender nasional)
     const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ID`);
     const data = await resp.json();
     const nyepi = data.find((d: any) =>
@@ -145,48 +171,33 @@ async function fetchBalineseHolidays(year: number) {
         textColor: "#fff",
         allDay: true,
       });
+    } else {
+      console.warn(`⚠️ Tidak ada data Nyepi untuk ${year}, menambahkan estimasi manual`);
+      holidays.push({
+        id: `nyepi-${year}-est`,
+        title: "🌙 Hari Raya Nyepi (Perkiraan)",
+        start: `${year}-03-29`,
+        backgroundColor: "#047857",
+        textColor: "#fff",
+        allDay: true,
+      });
     }
   } catch (e) {
-    console.warn("⚠️ Tidak dapat memuat data Nyepi dari API:", e);
+    console.warn("⚠️ Gagal memuat Nyepi dari API:", e);
   }
 
-  // Hitung Galungan & Kuningan
-  const galunganDates = calculateGalunganDates(year);
-  galunganDates.forEach((g) => {
-    const galunganStr = g.toISOString().slice(0, 10);
+  // Tambahkan Galungan & Kuningan
+  const galunganKuningan = calculateGalunganAndKuningan(year);
+  holidays.push(...galunganKuningan);
 
-    // Tambah Galungan
-    holidays.push({
-      id: `galungan-${galunganStr}`,
-      title: "🌺 Hari Raya Galungan",
-      start: galunganStr,
-      backgroundColor: "#16a34a",
-      textColor: "#fff",
-      allDay: true,
-    });
-
-    // Tambah Kuningan (10 hari setelah Galungan)
-    const kuningan = new Date(g);
-    kuningan.setDate(g.getDate() + 10);
-    const kuninganStr = kuningan.toISOString().slice(0, 10);
-    holidays.push({
-      id: `kuningan-${kuninganStr}`,
-      title: "🌼 Hari Raya Kuningan",
-      start: kuninganStr,
-      backgroundColor: "#22c55e",
-      textColor: "#fff",
-      allDay: true,
-    });
-  });
-
+  console.log("✅ Hari Raya Bali:", holidays);
   return holidays;
 }
 
-
 useEffect(() => {
-  console.log("📅 Memuat libur nasional & Bali untuk tahun", selectedYear);
-  fetchHolidays(selectedYear);
+  console.log("📅 Memuat libur nasional & Hari Raya Bali untuk tahun", selectedYear);
   (async () => {
+    await fetchHolidays(selectedYear);
     const bali = await fetchBalineseHolidays(selectedYear);
     setBalineseHolidays(bali);
   })();
