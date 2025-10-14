@@ -3,7 +3,6 @@ import {
   collection,
   getDocs,
   updateDoc,
-  deleteDoc,
   doc,
   onSnapshot,
 } from "firebase/firestore";
@@ -78,16 +77,29 @@ export default function Dashboard() {
   }
 
   // === Hapus user ===
-  async function handleDeleteUser(uid: string, email: string) {
-    if (!window.confirm(`Yakin ingin menghapus user ${email}?`)) return;
-    try {
-      await deleteDoc(doc(db, "roles", uid));
-      alert(`✅ User ${email} berhasil dihapus.`);
-    } catch (err) {
-      console.error("❌ Gagal menghapus user:", err);
-      alert("Terjadi kesalahan saat menghapus user.");
+async function handleDeleteUser(uid: string) {
+  if (!confirm("Yakin ingin menghapus user ini?")) return;
+
+  try {
+    const res = await fetch("/api/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert("✅ User berhasil dihapus.");
+    } else {
+      alert("❌ Gagal menghapus user: " + data.error);
     }
+  } catch (err) {
+    console.error("Gagal hapus user:", err);
+    alert("Terjadi kesalahan pada server.");
   }
+}
+
 
   return (
     <div style={styles.page}>
@@ -142,13 +154,17 @@ export default function Dashboard() {
                         Jadikan Viewer
                       </button>
                       <button
-                        onClick={() => handleDeleteUser(user.id, user.email)}
+                        onClick={() => handleDeleteUser(user.id)}
                         style={{
-                          ...styles.actionBtn,
-                          background: "#6b7280",
+                          background: "#ef4444",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "6px 10px",
+                          cursor: "pointer",
                         }}
                       >
-                        🗑️ Hapus
+                        Hapus User
                       </button>
                     </div>
                   ) : (

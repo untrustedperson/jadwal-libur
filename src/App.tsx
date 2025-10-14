@@ -30,6 +30,19 @@ function AppContent() {
       localStorage.removeItem("role");
       setLoading(false);
 
+      auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    try {
+      await user.getIdToken(true); // paksa refresh token
+    } catch {
+      // Token tidak valid → logout otomatis
+      await auth.signOut();
+      localStorage.clear();
+      navigate("/login", { replace: true });
+    }
+  }
+});
+
       // ✅ Izinkan akses login & register tanpa redirect
       if (location.pathname !== "/login" && location.pathname !== "/register") {
         navigate("/login", { replace: true });
