@@ -542,72 +542,118 @@ const selectStyles = {
               🕒 Daftar Pengajuan Pending
             </h2>
             <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                background: "#f9fafb",
-                marginTop: 10,
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#f3f4f6" }}>
-                  <th style={{ padding: 10 }}>Pegawai</th>
-                  <th style={{ padding: 10 }}>Jenis Libur</th>
-                  <th style={{ padding: 10 }}>Tanggal</th>
-                  <th style={{ padding: 10 }}>Aksi</th>
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              background: "#f9fafb",
+              marginTop: 10,
+              tableLayout: "fixed", // ✅ fix agar kolom sejajar
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
+                <th style={{ padding: "12px 10px", width: "25%" }}>Pegawai</th>
+                <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
+                <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal</th>
+                <th style={{ padding: "12px 10px", width: "20%" }}>Aksi</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {events.filter((e) => e.status === "pending").length ? (
+                events
+                  .filter((e) => e.status === "pending")
+                  .map((e) => (
+                    <tr
+                      key={e.id}
+                      style={{
+                        borderBottom: "1px solid #e5e7eb",
+                        backgroundColor: "#fff",
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: "12px 10px",
+                          color: "#111827",
+                          fontWeight: 500,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {e.employee}
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px 10px",
+                          color: "#111827",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {Array.isArray(e.leaveType)
+                          ? e.leaveType.join(", ")
+                          : e.leaveType}
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px 10px",
+                          color: "#111827",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {e.start}
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px 10px",
+                          textAlign: "center",
+                        }}
+                      >
+                        <button
+                          onClick={() => approveEvent(e.id!)}
+                          style={{
+                            background: "#16a34a",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 12px",
+                            marginRight: 6,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Setujui
+                        </button>
+                        <button
+                          onClick={() => rejectEvent(e.id!)}
+                          style={{
+                            background: "#dc2626",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 12px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Tolak
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={4}
+                    style={{
+                      textAlign: "center",
+                      padding: 12,
+                      color: "#6b7280",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Tidak ada pengajuan pending.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {events.filter((e) => e.status === "pending").length ? (
-                  events
-                    .filter((e) => e.status === "pending")
-                    .map((e) => (
-                      <tr key={e.id}>
-                        <td style={{ padding: 12, color: "#111827" }}>{e.employee}</td>
-                        <td style={{ padding: 12, color: "#111827" }}>
-                          {Array.isArray(e.leaveType) ? e.leaveType.join(", ") : e.leaveType}
-                        </td>
-                        <td style={{ padding: 12, color: "#111827" }}>{e.start}</td>
-                        <td style={{ padding: 12 }}>
-                          <button
-                            onClick={() => approveEvent(e.id!)}
-                            style={{
-                              background: "#16a34a",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: 6,
-                              padding: "6px 12px",
-                              marginRight: 8,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Setujui
-                          </button>
-                          <button
-                            onClick={() => rejectEvent(e.id!)}
-                            style={{
-                              background: "#dc2626",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: 6,
-                              padding: "6px 12px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Tolak
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: "center", padding: 12 }}>
-                      Tidak ada pengajuan pending.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+              )}
+            </tbody>
+          </table>
           </div>
         )}
 
