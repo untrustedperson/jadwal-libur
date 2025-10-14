@@ -18,7 +18,7 @@ interface UserRole {
 
 export default function Dashboard() {
   const [users, setUsers] = useState<UserRole[]>([]);
-  const [deleting, setDeleting] = useState(false); // ⏳ Loading state untuk delete
+  const [deleting] = useState(false); // ⏳ Loading state untuk delete
   const navigate = useNavigate();
 
   // === Logout ===
@@ -78,36 +78,39 @@ export default function Dashboard() {
 
   // === Hapus user ===
   async function handleDeleteUser(uid: string) {
-    if (!confirm("Yakin ingin menghapus user ini?")) return;
-    setDeleting(true); // 🔥 tampilkan loading screen
+  if (!confirm("Yakin ingin menghapus user ini?")) return;
 
+  try {
+    // ✅ Set flag agar App.tsx tahu ini proses admin
+    localStorage.setItem("deleting_user", "true");
+
+    const res = await fetch("/api/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid }),
+    });
+
+    const text = await res.text();
+    let data;
     try {
-      const res = await fetch("/api/delete-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid }),
-      });
-
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        console.error("Respon bukan JSON:", text);
-        throw new Error(text);
-      }
-
-      if (!res.ok) throw new Error(data.error || "Server error");
-
-      alert("✅ User berhasil dihapus.");
-      await loadUsers(); // refresh daftar user
-    } catch (err: any) {
-      console.error("Gagal hapus user:", err);
-      alert("❌ " + err.message);
-    } finally {
-      setDeleting(false); // 🔁 sembunyikan loading
+      data = JSON.parse(text);
+    } catch {
+      console.error("Respon bukan JSON:", text);
+      throw new Error(text);
     }
+
+    if (!res.ok) throw new Error(data.error || "Server error");
+
+    alert("✅ User berhasil dihapus.");
+  } catch (err: any) {
+    console.error("Gagal hapus user:", err);
+    alert("❌ " + err.message);
+  } finally {
+    // 🧹 Hapus flag setelah selesai
+    localStorage.removeItem("deleting_user");
   }
+}
+
 
   return (
     <div style={styles.page}>
