@@ -36,21 +36,21 @@ export default function Calendar() {
   const [balineseHolidays, setBalineseHolidays] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<{ value: string; label: string; id?: string }[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>("all");
-
-  // modal tambah libur
-  const [showModal, setShowModal] = useState(false);
-  const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedEmployeeForAdd, setSelectedEmployeeForAdd] = useState<string | null>(null);
+  const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
 
-  // opsional: modal hapus event (siap dipakai jika nanti mau eventClick)
+  const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
-  // bulan/tahun
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+
+  // 🔁 filter libur
+  const [showNationalHolidays, setShowNationalHolidays] = useState(true);
+  const [showBalineseHolidays, setShowBalineseHolidays] = useState(true);
 
   const calendarRef = useRef<any>(null);
   const navigate = useNavigate();
@@ -58,9 +58,7 @@ export default function Calendar() {
   const employeesCollection = collection(db, "employees");
   const userName = (auth.currentUser?.email || "").split("@")[0];
 
-  /* =========================
-     Data Realtime
-  ==========================*/
+  /* ========== Realtime Data ========== */
   useEffect(() => {
     const unsub = onSnapshot(eventsCollection, (snap) => {
       const data = snap.docs.map((d) => ({
@@ -85,9 +83,7 @@ export default function Calendar() {
     return () => unsub();
   }, []);
 
-  /* =========================
-     Libur Nasional / Bali
-  ==========================*/
+  /* ========== Libur Nasional / Bali ========== */
   async function fetchHolidays(year: number) {
     try {
       const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
@@ -108,18 +104,11 @@ export default function Calendar() {
   }
 
   const baseBalineseHolidays = [
-    { title: "Purnama", date: "01-14" },
-    { title: "Siwa Ratri", date: "01-27" },
-    { title: "Tilem", date: "01-28" },
     { title: "Hari Raya Saraswati", date: "02-08" },
-    { title: "Pagerwesi", date: "02-12" },
     { title: "Tumpek Landep", date: "02-22" },
     { title: "Hari Raya Nyepi", date: "03-29" },
     { title: "Ngembak Geni", date: "03-30" },
-    { title: "Penampahan Galungan", date: "04-22" },
     { title: "Hari Raya Galungan", date: "04-23" },
-    { title: "Manis Galungan", date: "04-24" },
-    { title: "Penampahan Kuningan", date: "05-02" },
     { title: "Hari Raya Kuningan", date: "05-03" },
   ];
 
@@ -137,18 +126,14 @@ export default function Calendar() {
     setBalineseHolidays(generateBalineseHolidays(selectedYear));
   }, [selectedYear]);
 
-  /* =========================
-     Auth
-  ==========================*/
+  /* ========== Auth ========== */
   async function handleLogout() {
     await signOut(auth);
     localStorage.removeItem("role");
     navigate("/login");
   }
 
-  /* =========================
-     CRUD Events / Pengajuan
-  ==========================*/
+  /* ========== CRUD Jadwal ========== */
   async function saveNewLeave() {
     if (selectedLeaveTypes.length === 0)
       return alert("Pilih jenis libur dulu!");
@@ -156,18 +141,16 @@ export default function Calendar() {
     let employeeName = userName;
     let leaveStatus: "approved" | "pending" = "pending";
 
-    // admin: wajib pilih pegawai, status approved
     if (canEdit) {
       if (!selectedEmployeeForAdd) return alert("Pilih pegawai dulu!");
       employeeName = selectedEmployeeForAdd;
       leaveStatus = "approved";
     }
 
-    const leaveArr = selectedLeaveTypes.map((v) => String(v));
     const newEvent: CalendarEvent = {
-      title: `${employeeName} - ${leaveArr.join(", ")}`,
+      title: `${employeeName} - ${selectedLeaveTypes.join(", ")}`,
       employee: employeeName,
-      leaveType: leaveArr,
+      leaveType: selectedLeaveTypes,
       start: selectedDate,
       end: selectedDate,
       status: leaveStatus,
@@ -192,9 +175,14 @@ export default function Calendar() {
     await updateDoc(doc(db, "events", id), { status: "rejected" });
   }
 
-  /* =========================
-     Calendar nav
-  ==========================*/
+  async function deleteEvent(id: string) {
+    if (confirm("Hapus jadwal ini?")) {
+      await deleteDoc(doc(db, "events", id));
+      setShowDeleteModal(false);
+      setSelectedEventId(null);
+    }
+  }
+
   const handleMonthYearChange = () => {
     if (calendarRef.current) {
       const newDate = new Date(selectedYear, selectedMonth, 1);
@@ -205,9 +193,6 @@ export default function Calendar() {
     }
   };
 
-  /* =========================
-     Styling react-select (kontras)
-  ==========================*/
   const selectStyles = {
     control: (base: any) => ({
       ...base,
@@ -217,33 +202,8 @@ export default function Calendar() {
       minHeight: 40,
       boxShadow: "none",
     }),
-    menu: (base: any) => ({
-      ...base,
-      borderRadius: 8,
-      backgroundColor: "#ffffff",
-      overflow: "hidden",
-      zIndex: 30,
-    }),
-    option: (base: any, state: any) => ({
-      ...base,
-      backgroundColor: state.isSelected
-        ? "#2563eb"
-        : state.isFocused
-        ? "#e0e7ff"
-        : "#ffffff",
-      color: state.isSelected ? "#ffffff" : "#111827",
-      cursor: "pointer",
-    }),
-    singleValue: (base: any) => ({
-      ...base,
-      color: "#111827",
-      fontWeight: 600,
-    }),
   };
 
-  /* =========================
-     Render
-  ==========================*/
   return (
     <div
       style={{
@@ -264,12 +224,46 @@ export default function Calendar() {
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: 30,
+            flexWrap: "wrap",
+            gap: 10,
           }}
         >
           <h1 style={{ color: "#fff", fontSize: "1.8rem" }}>
             📅 Jadwal Hari Libur — Halo, {userName}
           </h1>
-          <div style={{ display: "flex", gap: 10 }}>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+            {/* Checkbox filter libur */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: "rgba(255,255,255,0.2)",
+                borderRadius: 8,
+                padding: "6px 10px",
+                color: "#fff",
+                fontSize: ".9rem",
+              }}
+            >
+              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={showNationalHolidays}
+                  onChange={(e) => setShowNationalHolidays(e.target.checked)}
+                />
+                <span>Libur Nasional</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={showBalineseHolidays}
+                  onChange={(e) => setShowBalineseHolidays(e.target.checked)}
+                />
+                <span>Hari Raya Bali</span>
+              </label>
+            </div>
+
             {canEdit && (
               <button
                 onClick={() => navigate("/manage-employees")}
@@ -286,6 +280,7 @@ export default function Calendar() {
                 👥 Kelola Pegawai
               </button>
             )}
+
             <button
               onClick={() => setShowMonthPicker(true)}
               style={{
@@ -300,6 +295,7 @@ export default function Calendar() {
             >
               📆 Pilih Bulan & Tahun
             </button>
+
             <button
               onClick={handleLogout}
               style={{
@@ -327,38 +323,101 @@ export default function Calendar() {
             boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
           }}
         >
-<FullCalendar
-  ref={calendarRef}
-  plugins={[dayGridPlugin, interactionPlugin]}
-  initialView="dayGridMonth"
-  dateClick={(info) => {
-    setSelectedDate(info.dateStr);
-    setShowModal(true);
-  }}
-  eventClick={(info) => {
-    if (!canEdit) return; // hanya admin/dev bisa hapus
-    setSelectedEventId(info.event.id);
-    setShowDeleteModal(true);
-  }}
-  events={[
-    ...events.map((e) => {
-      const status = (e.status || "pending").toLowerCase();
-      const bg =
-        status === "approved"
-          ? "#2563eb"
-          : status === "pending"
-          ? "#facc15"
-          : "#9ca3af";
-      const txt = status === "pending" ? "#000" : "#fff";
-      return { ...e, backgroundColor: bg, textColor: txt };
-    }),
-    ...holidays,
-    ...balineseHolidays,
-  ]}
-/>
-
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            dateClick={(info) => {
+              setSelectedDate(info.dateStr);
+              setShowModal(true);
+            }}
+            eventClick={(info) => {
+              if (!canEdit) return;
+              setSelectedEventId(info.event.id);
+              setShowDeleteModal(true);
+            }}
+            events={[
+              ...events.map((e) => {
+                const status = (e.status || "pending").toLowerCase();
+                const bg =
+                  status === "approved"
+                    ? "#2563eb"
+                    : status === "pending"
+                    ? "#facc15"
+                    : "#9ca3af";
+                const txt = status === "pending" ? "#000" : "#fff";
+                return { ...e, backgroundColor: bg, textColor: txt };
+              }),
+              ...(showNationalHolidays ? holidays : []),
+              ...(showBalineseHolidays ? balineseHolidays : []),
+            ]}
+          />
         </div>
 
+        {/* === MODAL HAPUS === */}
+        {showDeleteModal && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(0,0,0,0.5)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 12,
+                padding: 24,
+                width: "90%",
+                maxWidth: 400,
+                color: "#111827",
+                textAlign: "center",
+              }}
+            >
+              <h3 style={{ color: "#1e3a8a", marginBottom: 16 }}>
+                Apakah Anda ingin menghapus jadwal ini?
+              </h3>
+              <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+                <button
+                  onClick={() => selectedEventId && deleteEvent(selectedEventId)}
+                  style={{
+                    background: "#dc2626",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  Ya
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  style={{
+                    background: "#9ca3af",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+        </div>
+        )}
+        
         {/* === TABEL PENGAJUAN PENDING === */}
         {canEdit && (
           <div
