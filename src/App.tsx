@@ -26,27 +26,17 @@ function AppContent() {
   useEffect(() => {
   const unsubscribeAuth = auth.onAuthStateChanged((user) => {
     if (!user) {
+      // 🧩 Tambahkan pengecualian untuk dev
+      const localRole = localStorage.getItem("role");
+      if (localRole === "dev") {
+        console.log("⚠️ Auth token invalid tapi role dev tetap dipertahankan.");
+        return; // jangan navigate
+      }
+
       setRole(null);
       localStorage.removeItem("role");
       setLoading(false);
-
-      auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    try {
-      await user.getIdToken(true); // paksa refresh token
-    } catch {
-      // Token tidak valid → logout otomatis
-      await auth.signOut();
-      localStorage.clear();
-      navigate("/login", { replace: true });
-    }
-  }
-});
-
-      // ✅ Izinkan akses login & register tanpa redirect
-      if (location.pathname !== "/login" && location.pathname !== "/register") {
-        navigate("/login", { replace: true });
-      }
+      if (location.pathname !== "/login") navigate("/login", { replace: true });
       return;
     }
 
@@ -65,16 +55,20 @@ function AppContent() {
           setRole(newRole);
         }
 
-        // ✅ Arahkan otomatis hanya jika di login/register
-        if (location.pathname === "/login" || location.pathname === "/register") {
-          if (newRole === "dev") navigate("/dashboard", { replace: true });
-          else navigate("/calendar", { replace: true });
+        // Navigasi sesuai role
+        if (newRole === "admin" || newRole === "viewer") {
+          if (location.pathname === "/login" || location.pathname === "/register") {
+            navigate("/calendar", { replace: true });
+          }
+        } else if (newRole === "dev") {
+          if (location.pathname === "/login" || location.pathname === "/register") {
+            navigate("/dashboard", { replace: true });
+          }
         }
       } else {
         console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
         localStorage.setItem("role", "viewer");
         setRole("viewer");
-
         if (location.pathname === "/login" || location.pathname === "/register") {
           navigate("/calendar", { replace: true });
         }
