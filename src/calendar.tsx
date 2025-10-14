@@ -217,101 +217,160 @@ export default function Calendar() {
       }}
     >
       <div style={{ width: "100%", maxWidth: 1200 }}>
-        {/* === HEADER === */}
-        <div
+{/* === HEADER === */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 30,
+    flexWrap: "wrap",
+    gap: 10,
+  }}
+>
+  <h1
+    style={{
+      color: "#fff",
+      fontSize: "1.8rem",
+      fontWeight: 700,
+    }}
+  >
+    📅 Jadwal Hari Libur — Halo, {userName}
+  </h1>
+
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 10,
+      alignItems: "center",
+      justifyContent: "flex-end",
+    }}
+  >
+    {/* === Checkbox Filter === */}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        background: "rgba(255,255,255,0.25)",
+        borderRadius: 10,
+        padding: "8px 14px",
+        color: "#fff",
+        fontWeight: 500,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+      }}
+    >
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          cursor: "pointer",
+          transition: "0.2s",
+        }}
+        title="Tampilkan / sembunyikan libur nasional"
+      >
+        <input
+          type="checkbox"
+          checked={showNationalHolidays}
+          onChange={(e) => setShowNationalHolidays(e.target.checked)}
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 30,
-            flexWrap: "wrap",
-            gap: 10,
+            width: 18,
+            height: 18,
+            accentColor: "#facc15",
+            cursor: "pointer",
+            transform: "scale(1.1)",
           }}
-        >
-          <h1 style={{ color: "#fff", fontSize: "1.8rem" }}>
-            📅 Jadwal Hari Libur — Halo, {userName}
-          </h1>
+        />
+        Libur Nasional
+      </label>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-            {/* Checkbox filter libur */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                background: "rgba(255,255,255,0.2)",
-                borderRadius: 8,
-                padding: "6px 10px",
-                color: "#fff",
-                fontSize: ".9rem",
-              }}
-            >
-              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={showNationalHolidays}
-                  onChange={(e) => setShowNationalHolidays(e.target.checked)}
-                />
-                <span>Libur Nasional</span>
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={showBalineseHolidays}
-                  onChange={(e) => setShowBalineseHolidays(e.target.checked)}
-                />
-                <span>Hari Raya Bali</span>
-              </label>
-            </div>
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          cursor: "pointer",
+          transition: "0.2s",
+        }}
+        title="Tampilkan / sembunyikan hari raya Bali"
+      >
+        <input
+          type="checkbox"
+          checked={showBalineseHolidays}
+          onChange={(e) => setShowBalineseHolidays(e.target.checked)}
+          style={{
+            width: 18,
+            height: 18,
+            accentColor: "#16a34a",
+            cursor: "pointer",
+            transform: "scale(1.1)",
+          }}
+        />
+        Hari Raya Bali
+      </label>
+    </div>
 
-            {canEdit && (
-              <button
-                onClick={() => navigate("/manage-employees")}
-                style={{
-                  background: "#10b981",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "10px 16px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                👥 Kelola Pegawai
-              </button>
-            )}
+    {/* === Buttons === */}
+    {canEdit && (
+      <button
+        onClick={() => navigate("/manage-employees")}
+        style={{
+          background: "#10b981",
+          color: "#fff",
+          border: "none",
+          borderRadius: 8,
+          padding: "10px 16px",
+          fontWeight: 600,
+          cursor: "pointer",
+          transition: "all 0.25s ease",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#059669")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "#10b981")}
+      >
+        👥 Kelola Pegawai
+      </button>
+    )}
 
-            <button
-              onClick={() => setShowMonthPicker(true)}
-              style={{
-                background: "#facc15",
-                color: "#000",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 16px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              📆 Pilih Bulan & Tahun
-            </button>
+    <button
+      onClick={() => setShowMonthPicker(true)}
+      style={{
+        background: "#facc15",
+        color: "#000",
+        border: "none",
+        borderRadius: 8,
+        padding: "10px 16px",
+        fontWeight: 600,
+        cursor: "pointer",
+        transition: "all 0.25s ease",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "#eab308")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "#facc15")}
+    >
+      📆 Pilih Bulan & Tahun
+    </button>
 
-            <button
-              onClick={handleLogout}
-              style={{
-                background: "#2563eb",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 18px",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
+    <button
+      onClick={handleLogout}
+      style={{
+        background: "#ef4444",
+        color: "#fff",
+        border: "none",
+        borderRadius: 8,
+        padding: "10px 18px",
+        cursor: "pointer",
+        fontWeight: 600,
+        transition: "all 0.25s ease",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "#dc2626")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "#ef4444")}
+    >
+      🚪 Logout
+    </button>
+  </div>
+</div>
+
 
         {/* === CALENDAR === */}
         <div
