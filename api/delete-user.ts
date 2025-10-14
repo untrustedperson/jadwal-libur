@@ -1,32 +1,29 @@
-import express from "express";
-import cors from "cors";
-import { admin, db } from "./_firebase";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { admin, db } from "./_firebase.js";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.post("/delete-user", async (req, res) => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
     const { uid } = req.body;
-    if (!uid) return res.status(400).json({ error: "Missing UID" });
+    if (!uid) {
+      return res.status(400).json({ error: "Missing UID" });
+    }
 
-    console.log("🗑️ Hapus user:", uid);
-
-    // Hapus dari Authentication
+    // 🔥 Hapus dari Authentication
     await admin.auth().deleteUser(uid);
 
-    // Hapus dari Firestore
+    // 🔥 Hapus dari Firestore
     await db.collection("roles").doc(uid).delete();
 
     return res.status(200).json({ success: true });
   } catch (err: any) {
-    console.error("🔥 Gagal hapus user:", err);
+    console.error("❌ Gagal hapus user:", err);
     return res.status(500).json({
-      success: false,
-      error: err.message || "Server error",
+      error: "Server error",
+      message: err.message,
     });
   }
-});
-
-export default app;
+}
