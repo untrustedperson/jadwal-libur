@@ -150,8 +150,8 @@ function generateBalineseEvents(year: number): CalendarEvent[] {
   return events;
 }
 
-/* ========== Libur Nasional Multi-Tahun ========== */
-async function fetchAllNationalHolidays(): Promise<CalendarEvent[]> {
+/* ========== Hari Raya Indonesia (Libur Nasional + Hari Besar Tambahan) ========== */
+async function fetchAllIndonesianHolidays(): Promise<CalendarEvent[]> {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
   const all: CalendarEvent[] = [];
@@ -163,7 +163,8 @@ async function fetchAllNationalHolidays(): Promise<CalendarEvent[]> {
       if (!resp.ok) throw new Error(`Gagal fetch tahun ${y}`);
       const data = await resp.json();
 
-      const formatted = data.map((d: any) => ({
+      // 🔴 Data resmi dari Nager.Date
+      const official = data.map((d: any) => ({
         id: `${y}-${d.date}`,
         title: `🇮🇩 ${d.localName}`,
         start: d.date,
@@ -171,13 +172,31 @@ async function fetchAllNationalHolidays(): Promise<CalendarEvent[]> {
         textColor: "#fff",
         allDay: true,
       }));
-      all.push(...formatted);
+
+      // 🔴 Tambahkan hari besar nasional tambahan
+      const extras = [
+        { date: `${y}-04-21`, title: "🇮🇩 Hari Kartini" },
+        { date: `${y}-06-01`, title: "🇮🇩 Hari Lahir Pancasila" },
+        { date: `${y}-08-17`, title: "🇮🇩 Hari Kemerdekaan RI" },
+        { date: `${y}-10-28`, title: "🇮🇩 Hari Sumpah Pemuda" },
+        { date: `${y}-11-10`, title: "🇮🇩 Hari Pahlawan" },
+        { date: `${y}-12-22`, title: "🇮🇩 Hari Ibu" },
+      ].map((d) => ({
+        id: `${y}-${d.date}`,
+        title: d.title,
+        start: d.date,
+        backgroundColor: "#dc2626",
+        textColor: "#fff",
+        allDay: true,
+      }));
+
+      all.push(...official, ...extras);
     } catch (e) {
-      console.warn(`⚠️ Gagal memuat libur nasional tahun ${y}:`, e);
+      console.warn(`⚠️ Gagal memuat hari raya Indonesia tahun ${y}:`, e);
     }
   }
 
-  console.log(`✅ Total libur nasional dimuat: ${all.length} hari`);
+  console.log(`✅ Total Hari Raya Indonesia dimuat: ${all.length}`);
   return all;
 }
 
@@ -218,13 +237,13 @@ async function fetchAllBalineseHolidays(): Promise<CalendarEvent[]> {
 
 useEffect(() => {
   (async () => {
-    console.log("📅 Memuat semua libur nasional & Bali (multi-tahun)...");
-    const [national, balinese] = await Promise.all([
-      fetchAllNationalHolidays(),
+    console.log("📅 Memuat semua Hari Raya Indonesia & Bali (multi-tahun)...");
+    const [indo, bali] = await Promise.all([
+      fetchAllIndonesianHolidays(),
       fetchAllBalineseHolidays(),
     ]);
-    setHolidays(national);
-    setBalineseHolidays(balinese);
+    setHolidays(indo);
+    setBalineseHolidays(bali);
   })();
 }, []);
 
@@ -442,7 +461,7 @@ const selectStyles = {
           checked={showNationalHolidays}
           onChange={(e) => setShowNationalHolidays(e.target.checked)}
         />
-        <span>Libur Nasional</span>
+        <span>Hari Raya Indonesia</span>
       </label>
       <label
         style={{
