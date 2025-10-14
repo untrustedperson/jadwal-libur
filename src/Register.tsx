@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ gunakan Link
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -31,7 +31,7 @@ export default function Register() {
       localStorage.setItem("role", "viewer");
 
       // 🔹 Arahkan ke kalender
-      navigate("/calendar");
+      navigate("/calendar", { replace: true });
     } catch (err: any) {
       console.error("Register error:", err);
       if (err.code === "auth/weak-password") {
@@ -77,9 +77,9 @@ export default function Register() {
 
         <p style={styles.linkText}>
           Sudah punya akun?{" "}
-          <a href="/login" style={styles.link}>
+          <Link to="/login" style={styles.link}>
             Login
-          </a>
+          </Link>
         </p>
       </div>
     </div>
@@ -93,7 +93,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "linear-gradient(135deg, #16a34a, #4ade80)", // tetap hijau seperti semula
+    background: "linear-gradient(135deg, #16a34a, #4ade80)",
     overflow: "hidden",
     padding: "0 16px",
     boxSizing: "border-box",
