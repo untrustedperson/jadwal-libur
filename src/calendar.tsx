@@ -25,6 +25,7 @@ interface CalendarEvent {
   status?: "approved" | "pending" | "rejected";
   backgroundColor?: string;
   textColor?: string;
+  allDay?: boolean;
 }
 
 export default function Calendar() {
@@ -105,45 +106,103 @@ async function fetchHolidays(year: number) {
   }
 }
 
-// Daftar hari raya Bali (statis)
-const baseBalineseHolidays = [
-  { title: "Purnama", date: "01-14" },
-  { title: "Siwa Ratri", date: "01-27" },
-  { title: "Tilem", date: "01-28" },
-  { title: "Hari Raya Saraswati", date: "02-08" },
-  { title: "Pagerwesi", date: "02-12" },
-  { title: "Tumpek Landep", date: "02-22" },
-  { title: "Hari Raya Nyepi", date: "03-29" },
-  { title: "Ngembak Geni", date: "03-30" },
-  { title: "Penampahan Galungan", date: "02-22" },
-  { title: "Hari Raya Galungan", date: "04-23" },
-  { title: "Manis Galungan", date: "02-04" },
-  { title: "Penampahan Kuningan", date: "05-02" },
-  { title: "Hari Raya Kuningan", date: "05-03" },
-];
+/* ========== Hari Raya Bali Otomatis (Galungan, Kuningan, Nyepi) ========== */
 
-const generateBalineseHolidays = (year: number) =>
-  baseBalineseHolidays.map((b) => ({
-    id: `${year}-${b.date}-${b.title}`,
-    title: `🌺 ${b.title}`,
-    start: `${year}-${b.date}`,
-    backgroundColor: "#16a34a",
-    textColor: "#fff",
-    allDay: true,
-  }));
+// Tanggal referensi Galungan terakhir (berdasarkan kalender Bali)
+const referenceGalungan = new Date("2025-02-12"); // Galungan terakhir diketahui
+const GALUNGAN_CYCLE_DAYS = 210; // Siklus Pawukon 210 hari
+
+function calculateGalunganDates(year: number): Date[] {
+  const galungans: Date[] = [];
+  const start = new Date(referenceGalungan);
+
+  // Cek 2 tahun ke belakang dan ke depan
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i * GALUNGAN_CYCLE_DAYS);
+    if (d.getFullYear() === year) galungans.push(d);
+  }
+
+  return galungans;
+}
+
+async function fetchBalineseHolidays(year: number) {
+  const holidays: CalendarEvent[] = [];
+
+  try {
+    // Ambil data Nyepi dari API publik (kalender nasional)
+    const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ID`);
+    const data = await resp.json();
+    const nyepi = data.find((d: any) =>
+      d.localName.toLowerCase().includes("nyepi")
+    );
+    if (nyepi) {
+      holidays.push({
+        id: `nyepi-${nyepi.date}`,
+        title: "🌙 Hari Raya Nyepi",
+        start: nyepi.date,
+        backgroundColor: "#047857",
+        textColor: "#fff",
+        allDay: true,
+      });
+    }
+  } catch (e) {
+    console.warn("⚠️ Tidak dapat memuat data Nyepi dari API:", e);
+  }
+
+  // Hitung Galungan & Kuningan
+  const galunganDates = calculateGalunganDates(year);
+  galunganDates.forEach((g) => {
+    const galunganStr = g.toISOString().slice(0, 10);
+
+    // Tambah Galungan
+    holidays.push({
+      id: `galungan-${galunganStr}`,
+      title: "🌺 Hari Raya Galungan",
+      start: galunganStr,
+      backgroundColor: "#16a34a",
+      textColor: "#fff",
+      allDay: true,
+    });
+
+    // Tambah Kuningan (10 hari setelah Galungan)
+    const kuningan = new Date(g);
+    kuningan.setDate(g.getDate() + 10);
+    const kuninganStr = kuningan.toISOString().slice(0, 10);
+    holidays.push({
+      id: `kuningan-${kuninganStr}`,
+      title: "🌼 Hari Raya Kuningan",
+      start: kuninganStr,
+      backgroundColor: "#22c55e",
+      textColor: "#fff",
+      allDay: true,
+    });
+  });
+
+  return holidays;
+}
+
 
 useEffect(() => {
   console.log("📅 Memuat libur nasional & Bali untuk tahun", selectedYear);
   fetchHolidays(selectedYear);
-  setBalineseHolidays(generateBalineseHolidays(selectedYear));
+  (async () => {
+    const bali = await fetchBalineseHolidays(selectedYear);
+    setBalineseHolidays(bali);
+  })();
 }, [selectedYear]);
 
 // Tambahkan efek re-render bila user menyalakan kembali checkbox
 useEffect(() => {
   if (showNationalHolidays && holidays.length === 0) fetchHolidays(selectedYear);
-  if (showBalineseHolidays && balineseHolidays.length === 0)
-    setBalineseHolidays(generateBalineseHolidays(selectedYear));
+  if (showBalineseHolidays && balineseHolidays.length === 0) {
+    (async () => {
+      const bali = await fetchBalineseHolidays(selectedYear);
+      setBalineseHolidays(bali);
+    })();
+  }
 }, [showNationalHolidays, showBalineseHolidays]);
+
 
   /* ========== Auth ========== */
   async function handleLogout() {
@@ -207,7 +266,10 @@ useEffect(() => {
       const newDate = new Date(selectedYear, selectedMonth, 1);
       calendarRef.current.getApi().gotoDate(newDate);
       fetchHolidays(selectedYear);
-      setBalineseHolidays(generateBalineseHolidays(selectedYear));
+      (async () => {
+      const bali = await fetchBalineseHolidays(selectedYear);
+      setBalineseHolidays(bali);
+    })();
       setShowMonthPicker(false);
     }
   };
