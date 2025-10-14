@@ -107,11 +107,18 @@ async function fetchHolidays(year: number) {
 
 // Daftar hari raya Bali (statis)
 const baseBalineseHolidays = [
+  { title: "Purnama", date: "01-14" },
+  { title: "Siwa Ratri", date: "01-27" },
+  { title: "Tilem", date: "01-28" },
   { title: "Hari Raya Saraswati", date: "02-08" },
+  { title: "Pagerwesi", date: "02-12" },
   { title: "Tumpek Landep", date: "02-22" },
   { title: "Hari Raya Nyepi", date: "03-29" },
   { title: "Ngembak Geni", date: "03-30" },
+  { title: "Penampahan Galungan", date: "02-22" },
   { title: "Hari Raya Galungan", date: "04-23" },
+  { title: "Manis Galungan", date: "02-04" },
+  { title: "Penampahan Kuningan", date: "05-02" },
   { title: "Hari Raya Kuningan", date: "05-03" },
 ];
 
