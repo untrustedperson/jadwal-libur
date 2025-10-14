@@ -3,6 +3,7 @@ import {
   collection,
   getDocs,
   updateDoc,
+  deleteDoc,
   doc,
   onSnapshot,
 } from "firebase/firestore";
@@ -41,7 +42,7 @@ export default function Dashboard() {
     setUsers(data);
   }
 
-  // === Listener untuk perubahan role secara realtime
+  // === Listener untuk perubahan role secara realtime ===
   useEffect(() => {
     loadUsers();
 
@@ -52,7 +53,7 @@ export default function Dashboard() {
       })) as UserRole[];
       setUsers(data);
 
-      // jika user yang login diubah rolenya -> reload otomatis
+      // Jika role user login berubah -> reload otomatis
       const currentUser = auth.currentUser;
       if (currentUser) {
         const user = data.find((u) => u.id === currentUser.uid);
@@ -73,6 +74,18 @@ export default function Dashboard() {
       await updateDoc(userRef, { role: newRole });
     } catch (err) {
       console.error("Gagal mengubah role:", err);
+    }
+  }
+
+  // === Hapus user ===
+  async function handleDeleteUser(uid: string, email: string) {
+    if (!window.confirm(`Yakin ingin menghapus user ${email}?`)) return;
+    try {
+      await deleteDoc(doc(db, "roles", uid));
+      alert(`✅ User ${email} berhasil dihapus.`);
+    } catch (err) {
+      console.error("❌ Gagal menghapus user:", err);
+      alert("Terjadi kesalahan saat menghapus user.");
     }
   }
 
@@ -101,10 +114,12 @@ export default function Dashboard() {
               <tr key={user.id} style={styles.tr}>
                 <td style={styles.td}>{user.email}</td>
                 <td style={styles.td}>
-                  <span style={{ textTransform: "capitalize" }}>{user.role}</span>
+                  <span style={{ textTransform: "capitalize" }}>
+                    {user.role}
+                  </span>
                 </td>
                 <td style={styles.td}>
-                  {user.role !== "dev" && (
+                  {user.role !== "dev" ? (
                     <div style={styles.actionButtons}>
                       <button
                         onClick={() => handleRoleChange(user.id, "admin")}
@@ -126,7 +141,20 @@ export default function Dashboard() {
                       >
                         Jadikan Viewer
                       </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id, user.email)}
+                        style={{
+                          ...styles.actionBtn,
+                          background: "#6b7280",
+                        }}
+                      >
+                        🗑️ Hapus
+                      </button>
                     </div>
+                  ) : (
+                    <span style={{ color: "#6b7280", fontStyle: "italic" }}>
+                      Tidak dapat diubah
+                    </span>
                   )}
                 </td>
               </tr>
@@ -149,7 +177,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     padding: "30px 16px",
     boxSizing: "border-box",
-    overflowX: "hidden", // 🟢 fix background kanan
+    overflowX: "hidden",
   },
   header: {
     width: "100%",
