@@ -24,57 +24,57 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        setRole(null);
-        localStorage.removeItem("role");
-        setLoading(false);
-        if (location.pathname !== "/login") navigate("/login", { replace: true });
-        return;
+  const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+    if (!user) {
+      setRole(null);
+      localStorage.removeItem("role");
+      setLoading(false);
+
+      // ✅ Izinkan akses login & register tanpa redirect
+      if (location.pathname !== "/login" && location.pathname !== "/register") {
+        navigate("/login", { replace: true });
       }
+      return;
+    }
 
-      const roleRef = doc(db, "roles", user.uid);
-      const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const newRole = docSnap.data().role;
-          const oldRole = localStorage.getItem("role");
+    const roleRef = doc(db, "roles", user.uid);
+    const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const newRole = docSnap.data().role;
+        const oldRole = localStorage.getItem("role");
 
-          if (newRole !== oldRole) {
-            console.log(`🔄 Role berubah: ${oldRole || "none"} → ${newRole}`);
-            localStorage.setItem("role", newRole);
-            setRole(newRole);
-          } else if (!oldRole) {
-            localStorage.setItem("role", newRole);
-            setRole(newRole);
-          }
-
-          // ✅ Navigasi internal TANPA reload
-          if (newRole === "admin" || newRole === "viewer") {
-            if (location.pathname === "/login" || location.pathname === "/register") {
-              navigate("/calendar", { replace: true });
-            }
-          } else if (newRole === "dev") {
-            if (location.pathname === "/login" || location.pathname === "/register") {
-              navigate("/dashboard", { replace: true });
-            }
-          }
-        } else {
-          console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
-          localStorage.setItem("role", "viewer");
-          setRole("viewer");
-          if (location.pathname === "/login" || location.pathname === "/register") {
-            navigate("/calendar", { replace: true });
-          }
+        if (newRole !== oldRole) {
+          console.log(`🔄 Role berubah: ${oldRole || "none"} → ${newRole}`);
+          localStorage.setItem("role", newRole);
+          setRole(newRole);
+        } else if (!oldRole) {
+          localStorage.setItem("role", newRole);
+          setRole(newRole);
         }
 
-        setLoading(false);
-      });
+        // ✅ Arahkan otomatis hanya jika di login/register
+        if (location.pathname === "/login" || location.pathname === "/register") {
+          if (newRole === "dev") navigate("/dashboard", { replace: true });
+          else navigate("/calendar", { replace: true });
+        }
+      } else {
+        console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
+        localStorage.setItem("role", "viewer");
+        setRole("viewer");
 
-      return () => unsubscribeRole();
+        if (location.pathname === "/login" || location.pathname === "/register") {
+          navigate("/calendar", { replace: true });
+        }
+      }
+
+      setLoading(false);
     });
 
-    return () => unsubscribeAuth();
-  }, [navigate, location.pathname]);
+    return () => unsubscribeRole();
+  });
+
+  return () => unsubscribeAuth();
+}, [navigate, location.pathname]);
 
   if (loading) {
     return (
