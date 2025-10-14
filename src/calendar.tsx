@@ -193,13 +193,13 @@ export default function Calendar() {
     }
   };
 
-  const selectStyles = {
+const selectStyles = {
   control: (base: any, state: any) => ({
     ...base,
     borderRadius: 8,
     borderColor: state.isFocused ? "#2563eb" : "#d1d5db",
     backgroundColor: "#ffffff",
-    minHeight: 40,
+    minHeight: 42,
     boxShadow: state.isFocused ? "0 0 0 2px rgba(37,99,235,0.2)" : "none",
     ":hover": {
       borderColor: "#2563eb",
@@ -211,7 +211,7 @@ export default function Calendar() {
     backgroundColor: "#ffffff",
     overflow: "hidden",
     zIndex: 50,
-    boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
   }),
   option: (base: any, state: any) => ({
     ...base,
@@ -223,25 +223,33 @@ export default function Calendar() {
     color: state.isSelected ? "#ffffff" : "#111827",
     cursor: "pointer",
     fontWeight: state.isSelected ? 600 : 500,
+    padding: "10px 12px",
   }),
   singleValue: (base: any) => ({
     ...base,
-    color: "#111827",
+    color: "#111827", // ✅ teks default & selected value kini hitam pekat
     fontWeight: 600,
   }),
   input: (base: any) => ({
     ...base,
-    color: "#111827",
+    color: "#111827", // ✅ saat mengetik filter pegawai tetap jelas
   }),
   placeholder: (base: any) => ({
     ...base,
-    color: "#6b7280",
+    color: "#374151", // ✅ placeholder lebih gelap agar terlihat
     fontWeight: 500,
   }),
   dropdownIndicator: (base: any) => ({
     ...base,
     color: "#2563eb",
     ":hover": { color: "#1e40af" },
+  }),
+  indicatorSeparator: () => ({
+    display: "none",
+  }),
+  menuList: (base: any) => ({
+    ...base,
+    padding: 4,
   }),
 };
 
