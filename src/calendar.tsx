@@ -551,10 +551,10 @@ const selectStyles = {
             >
               <thead>
                 <tr style={{ background: "#f3f4f6" }}>
-                  <th style={{ padding: 12 }}>Pegawai</th>
-                  <th style={{ padding: 12 }}>Jenis Libur</th>
-                  <th style={{ padding: 12 }}>Tanggal</th>
-                  <th style={{ padding: 12 }}>Aksi</th>
+                  <th style={{ padding: 10 }}>Pegawai</th>
+                  <th style={{ padding: 10 }}>Jenis Libur</th>
+                  <th style={{ padding: 10 }}>Tanggal</th>
+                  <th style={{ padding: 10 }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -577,7 +577,7 @@ const selectStyles = {
                               border: "none",
                               borderRadius: 6,
                               padding: "6px 12px",
-                              marginRight: 1,
+                              marginRight: 8,
                               cursor: "pointer",
                             }}
                           >
