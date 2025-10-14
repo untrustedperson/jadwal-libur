@@ -270,44 +270,46 @@ const selectStyles = {
 <div
   style={{
     display: "flex",
-    justifyContent: "space-between",
+    flexDirection: "column",
     alignItems: "center",
     marginBottom: 30,
-    flexWrap: "wrap",
-    gap: 10,
+    gap: 20,
   }}
 >
+  {/* Judul */}
   <h1
     style={{
       color: "#fff",
       fontSize: "1.8rem",
       fontWeight: 700,
+      textAlign: "center",
     }}
   >
     📅 Jadwal Hari Libur — Halo, {userName}
   </h1>
 
+  {/* Tombol-tombol dan Checkbox */}
   <div
     style={{
       display: "flex",
       flexWrap: "wrap",
-      gap: 10,
+      justifyContent: "center",
       alignItems: "center",
-      justifyContent: "flex-end",
+      gap: 12,
+      background: "rgba(255,255,255,0.15)",
+      borderRadius: 12,
+      padding: "12px 20px",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
     }}
   >
-    {/* === Checkbox Filter === */}
+    {/* Checkbox Filter Libur */}
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 14,
-        background: "rgba(255,255,255,0.25)",
-        borderRadius: 10,
-        padding: "8px 14px",
+        gap: 16,
         color: "#fff",
-        fontWeight: 500,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        fontSize: ".95rem",
       }}
     >
       <label
@@ -316,52 +318,33 @@ const selectStyles = {
           alignItems: "center",
           gap: 6,
           cursor: "pointer",
-          transition: "0.2s",
         }}
-        title="Tampilkan / sembunyikan libur nasional"
       >
         <input
           type="checkbox"
           checked={showNationalHolidays}
           onChange={(e) => setShowNationalHolidays(e.target.checked)}
-          style={{
-            width: 18,
-            height: 18,
-            accentColor: "#facc15",
-            cursor: "pointer",
-            transform: "scale(1.1)",
-          }}
         />
-        Libur Nasional
+        <span>Libur Nasional</span>
       </label>
-
       <label
         style={{
           display: "flex",
           alignItems: "center",
           gap: 6,
           cursor: "pointer",
-          transition: "0.2s",
         }}
-        title="Tampilkan / sembunyikan hari raya Bali"
       >
         <input
           type="checkbox"
           checked={showBalineseHolidays}
           onChange={(e) => setShowBalineseHolidays(e.target.checked)}
-          style={{
-            width: 18,
-            height: 18,
-            accentColor: "#16a34a",
-            cursor: "pointer",
-            transform: "scale(1.1)",
-          }}
         />
-        Hari Raya Bali
+        <span>Hari Raya Bali</span>
       </label>
     </div>
 
-    {/* === Buttons === */}
+    {/* Tombol Kelola Pegawai */}
     {canEdit && (
       <button
         onClick={() => navigate("/manage-employees")}
@@ -373,15 +356,14 @@ const selectStyles = {
           padding: "10px 16px",
           fontWeight: 600,
           cursor: "pointer",
-          transition: "all 0.25s ease",
+          transition: "all 0.2s ease",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#059669")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "#10b981")}
       >
         👥 Kelola Pegawai
       </button>
     )}
 
+    {/* Tombol Pilih Bulan & Tahun */}
     <button
       onClick={() => setShowMonthPicker(true)}
       style={{
@@ -392,34 +374,30 @@ const selectStyles = {
         padding: "10px 16px",
         fontWeight: 600,
         cursor: "pointer",
-        transition: "all 0.25s ease",
+        transition: "all 0.2s ease",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "#eab308")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "#facc15")}
     >
       📆 Pilih Bulan & Tahun
     </button>
 
+    {/* Tombol Logout */}
     <button
       onClick={handleLogout}
       style={{
-        background: "#ef4444",
+        background: "#dc2626", // 🔴 merah agar lebih jelas
         color: "#fff",
         border: "none",
         borderRadius: 8,
         padding: "10px 18px",
         cursor: "pointer",
         fontWeight: 600,
-        transition: "all 0.25s ease",
+        transition: "all 0.2s ease",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "#dc2626")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "#ef4444")}
     >
-      🚪 Logout
+      🔒 Logout
     </button>
   </div>
 </div>
-
 
         {/* === CALENDAR === */}
         <div
