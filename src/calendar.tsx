@@ -577,7 +577,7 @@ const selectStyles = {
                               border: "none",
                               borderRadius: 6,
                               padding: "6px 12px",
-                              marginRight: 8,
+                              marginRight: 1,
                               cursor: "pointer",
                             }}
                           >
