@@ -25,20 +25,24 @@ function AppContent() {
 
   useEffect(() => {
   const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-    if (!user) {
-      // 🧩 Tambahkan pengecualian untuk dev
-      const localRole = localStorage.getItem("role");
-      if (localRole === "dev") {
-        console.log("⚠️ Auth token invalid tapi role dev tetap dipertahankan.");
-        return; // jangan navigate
-      }
+if (!user) {
+  // 🧩 Tambahkan pengecualian untuk dev
+  const localRole = localStorage.getItem("role");
+  if (localRole === "dev") {
+    console.log("⚠️ Auth token invalid tapi role dev tetap dipertahankan.");
+    return; // jangan navigate
+  }
 
-      setRole(null);
-      localStorage.removeItem("role");
-      setLoading(false);
-      if (location.pathname !== "/login") navigate("/login", { replace: true });
-      return;
-    }
+  setRole(null);
+  localStorage.removeItem("role");
+  setLoading(false);
+
+  // ✅ Jangan redirect jika user sedang di halaman login atau register
+  if (location.pathname !== "/login" && location.pathname !== "/register") {
+    navigate("/login", { replace: true });
+  }
+  return;
+}
 
     const roleRef = doc(db, "roles", user.uid);
     const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
