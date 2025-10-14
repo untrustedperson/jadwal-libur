@@ -87,21 +87,24 @@ async function handleDeleteUser(uid: string) {
       body: JSON.stringify({ uid }),
     });
 
-    const text = await res.text();
     let data;
     try {
-      data = JSON.parse(text);
+      data = await res.json();
     } catch {
+      // tangani kalau respon bukan JSON
+      const text = await res.text();
       console.error("Respon bukan JSON:", text);
-      throw new Error(text);
+      throw new Error("Server mengembalikan format tidak valid");
     }
 
-    if (!res.ok) throw new Error(data.error || "Server error");
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Gagal menghapus user");
+    }
 
     alert("✅ User berhasil dihapus.");
   } catch (err: any) {
     console.error("Gagal hapus user:", err);
-    alert("❌ " + err.message);
+    alert("❌ Gagal hapus user: " + err.message);
   }
 }
 
