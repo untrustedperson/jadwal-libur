@@ -20,7 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true });
   } catch (err: any) {
-    console.error("Gagal hapus user:", err);
-    return res.status(500).json({ error: err.message });
-  }
+  console.error("🔥 Gagal hapus user:", err);
+
+  return res.status(500).json({
+    success: false,
+    error: err.message || "Server error",
+  });
+}
 }

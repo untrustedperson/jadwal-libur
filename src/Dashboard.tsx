@@ -87,19 +87,22 @@ async function handleDeleteUser(uid: string) {
       body: JSON.stringify({ uid }),
     });
 
-    const data = await res.json();
-
-    if (data.success) {
-      alert("✅ User berhasil dihapus.");
-    } else {
-      alert("❌ Gagal menghapus user: " + data.error);
+    const text = await res.text(); // baca raw text
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(text);
     }
-  } catch (err) {
+
+    if (!res.ok) throw new Error(data.error || "Server error");
+
+    alert("✅ User berhasil dihapus.");
+  } catch (err: any) {
     console.error("Gagal hapus user:", err);
-    alert("Terjadi kesalahan pada server.");
+    alert("❌ Gagal hapus user: " + err.message);
   }
 }
-
 
   return (
     <div style={styles.page}>
