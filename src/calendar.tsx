@@ -106,13 +106,10 @@ async function fetchHolidays(year: number) {
   }
 }
 
-/* ========== Hari Raya Bali Otomatis (Galungan, Kuningan, Nyepi) ========== */
+/* ========== Hari Raya Bali Multi-Tahun (Galungan, Kuningan, Nyepi, dll) ========== */
 
-// Referensi Galungan terakhir (berdasarkan kalender Bali aktual)
-const REFERENCE_GALUNGAN = new Date("2025-02-12"); // Galungan terakhir diketahui
-const CYCLE_DAYS = 210; // 1 siklus pawukon
-
-// Daftar hari raya Bali yang mengikuti siklus Pawukon (offset dari Galungan)
+const REFERENCE_GALUNGAN = new Date("2025-02-12");
+const CYCLE_DAYS = 210;
 const BALINESE_CYCLES = [
   { title: "🌺 Hari Raya Galungan", offset: 0 },
   { title: "🌼 Hari Raya Kuningan", offset: 10 },
@@ -125,27 +122,24 @@ const BALINESE_CYCLES = [
   { title: "🎭 Siwaratri", offset: -3 },
 ];
 
-// Fungsi menghitung tanggal-tanggal Hari Raya berdasarkan siklus 210 hari
-function calculateBalineseCycle(year: number): CalendarEvent[] {
+function generateBalineseEvents(year: number): CalendarEvent[] {
   const events: CalendarEvent[] = [];
   const base = new Date(REFERENCE_GALUNGAN);
 
-  // Hitung ±10 siklus ke depan dan belakang (sekitar 6 tahun range)
-  for (let i = -10; i <= 10; i++) {
+  for (let i = -15; i <= 15; i++) {
     const galunganBase = new Date(base);
     galunganBase.setDate(base.getDate() + i * CYCLE_DAYS);
 
     BALINESE_CYCLES.forEach((cycle) => {
       const date = new Date(galunganBase);
       date.setDate(galunganBase.getDate() + cycle.offset);
-
       if (date.getFullYear() === year) {
         const dateStr = date.toISOString().slice(0, 10);
         events.push({
           id: `${cycle.title}-${dateStr}`,
           title: cycle.title,
           start: dateStr,
-          backgroundColor: "#16a34a", // 🟢 Hijau seragam untuk semua Hari Raya Bali
+          backgroundColor: "#16a34a",
           textColor: "#fff",
           allDay: true,
         });
@@ -156,63 +150,90 @@ function calculateBalineseCycle(year: number): CalendarEvent[] {
   return events;
 }
 
-// Fungsi utama: gabungkan Nyepi dari API dan hari raya pawukon
-async function fetchBalineseHolidays(year: number): Promise<CalendarEvent[]> {
-  const holidays: CalendarEvent[] = [];
+/* ========== Libur Nasional Multi-Tahun ========== */
+async function fetchAllNationalHolidays(): Promise<CalendarEvent[]> {
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+  const all: CalendarEvent[] = [];
 
-  // 🌙 Ambil Hari Raya Nyepi dari API publik
-  try {
-    const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ID`);
-    const data = await resp.json();
-    const nyepi = data.find((d: any) => d.localName.toLowerCase().includes("nyepi"));
+  for (const y of years) {
+    try {
+      const url = `https://date.nager.at/api/v3/PublicHolidays/${y}/ID`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Gagal fetch tahun ${y}`);
+      const data = await resp.json();
 
-    if (nyepi) {
-      holidays.push({
-        id: `nyepi-${nyepi.date}`,
-        title: "🌙 Hari Raya Nyepi",
-        start: nyepi.date,
-        backgroundColor: "#16a34a", // Hijau juga agar seragam
+      const formatted = data.map((d: any) => ({
+        id: `${y}-${d.date}`,
+        title: `🇮🇩 ${d.localName}`,
+        start: d.date,
+        backgroundColor: "#dc2626",
         textColor: "#fff",
         allDay: true,
-      });
-    } else {
-      // fallback manual jika tidak ditemukan di API
-      holidays.push({
-        id: `nyepi-${year}-manual`,
-        title: "🌙 Hari Raya Nyepi (Perkiraan)",
-        start: `${year}-03-29`,
-        backgroundColor: "#16a34a",
-        textColor: "#fff",
-        allDay: true,
-      });
+      }));
+      all.push(...formatted);
+    } catch (e) {
+      console.warn(`⚠️ Gagal memuat libur nasional tahun ${y}:`, e);
     }
-  } catch (e) {
-    console.warn("⚠️ Gagal memuat data Nyepi dari API:", e);
   }
 
-  // 🌺 Tambahkan hari raya pawukon lainnya
-  holidays.push(...calculateBalineseCycle(year));
+  console.log(`✅ Total libur nasional dimuat: ${all.length} hari`);
+  return all;
+}
 
-  console.log(`✅ Hari Raya Bali (${year}) ditemukan:`, holidays.length);
-  return holidays;
+async function fetchAllBalineseHolidays(): Promise<CalendarEvent[]> {
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+  const all: CalendarEvent[] = [];
+
+  // Tambahkan Nyepi dan Hari Raya Bali lainnya untuk tiap tahun
+  for (const year of years) {
+    // 🌙 Tambahkan Nyepi dari API publik
+    try {
+      const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/ID`);
+      const data = await resp.json();
+      const nyepi = data.find((d: any) => d.localName.toLowerCase().includes("nyepi"));
+      if (nyepi) {
+        all.push({
+          id: `nyepi-${nyepi.date}`,
+          title: "🌙 Hari Raya Nyepi",
+          start: nyepi.date,
+          backgroundColor: "#16a34a",
+          textColor: "#fff",
+          allDay: true,
+        });
+      }
+    } catch (e) {
+      console.warn(`⚠️ Gagal memuat Nyepi ${year}:`, e);
+    }
+
+    // 🌿 Tambahkan Hari Raya Pawukon (Galungan, Kuningan, dll)
+    all.push(...generateBalineseEvents(year));
+  }
+
+  console.log(`✅ Total Hari Raya Bali dimuat: ${all.length}`);
+  return all;
 }
 
 
 useEffect(() => {
-  console.log("📅 Memuat libur nasional & Hari Raya Bali untuk tahun", selectedYear);
   (async () => {
-    await fetchHolidays(selectedYear);
-    const bali = await fetchBalineseHolidays(selectedYear);
-    setBalineseHolidays(bali);
+    console.log("📅 Memuat semua libur nasional & Bali (multi-tahun)...");
+    const [national, balinese] = await Promise.all([
+      fetchAllNationalHolidays(),
+      fetchAllBalineseHolidays(),
+    ]);
+    setHolidays(national);
+    setBalineseHolidays(balinese);
   })();
-}, [selectedYear]);
+}, []);
 
 // Tambahkan efek re-render bila user menyalakan kembali checkbox
 useEffect(() => {
   if (showNationalHolidays && holidays.length === 0) fetchHolidays(selectedYear);
   if (showBalineseHolidays && balineseHolidays.length === 0) {
     (async () => {
-      const bali = await fetchBalineseHolidays(selectedYear);
+      const bali = await fetchAllBalineseHolidays();
       setBalineseHolidays(bali);
     })();
   }
@@ -282,7 +303,7 @@ useEffect(() => {
       calendarRef.current.getApi().gotoDate(newDate);
       fetchHolidays(selectedYear);
       (async () => {
-      const bali = await fetchBalineseHolidays(selectedYear);
+      const bali = await fetchAllBalineseHolidays();
       setBalineseHolidays(bali);
     })();
       setShowMonthPicker(false);
