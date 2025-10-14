@@ -18,7 +18,7 @@ interface UserRole {
 
 export default function Dashboard() {
   const [users, setUsers] = useState<UserRole[]>([]);
-  const [deleting] = useState(false); // ⏳ Loading state untuk delete
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   // === Logout ===
@@ -53,6 +53,7 @@ export default function Dashboard() {
       })) as UserRole[];
       setUsers(data);
 
+      // Jika role user login berubah -> reload otomatis
       const currentUser = auth.currentUser;
       if (currentUser) {
         const user = data.find((u) => u.id === currentUser.uid);
@@ -76,44 +77,56 @@ export default function Dashboard() {
     }
   }
 
-  // === Hapus user ===
+  // === Hapus user dengan loading screen ===
   async function handleDeleteUser(uid: string) {
-  if (!confirm("Yakin ingin menghapus user ini?")) return;
+    if (!confirm("Yakin ingin menghapus user ini?")) return;
 
-  try {
-    // ✅ Set flag agar App.tsx tahu ini proses admin
-    localStorage.setItem("deleting_user", "true");
-
-    const res = await fetch("/api/delete-user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid }),
-    });
-
-    const text = await res.text();
-    let data;
     try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("Respon bukan JSON:", text);
-      throw new Error(text);
+      setDeleting(true);
+      localStorage.setItem("deleting_user", "true");
+
+      const res = await fetch("/api/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }),
+      });
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Respon bukan JSON:", text);
+        throw new Error(text);
+      }
+
+      if (!res.ok) throw new Error(data.error || "Server error");
+
+      alert("✅ User berhasil dihapus.");
+      await loadUsers();
+    } catch (err: any) {
+      console.error("Gagal hapus user:", err);
+      alert("❌ " + err.message);
+    } finally {
+      setDeleting(false);
+      localStorage.removeItem("deleting_user");
     }
-
-    if (!res.ok) throw new Error(data.error || "Server error");
-
-    alert("✅ User berhasil dihapus.");
-  } catch (err: any) {
-    console.error("Gagal hapus user:", err);
-    alert("❌ " + err.message);
-  } finally {
-    // 🧹 Hapus flag setelah selesai
-    localStorage.removeItem("deleting_user");
   }
-}
-
 
   return (
     <div style={styles.page}>
+      {/* Loading Overlay */}
+      {deleting && (
+        <div style={styles.overlay}>
+          <div style={styles.loaderBox}>
+            <div className="spinner" style={styles.spinner}></div>
+            <p style={{ color: "#fff", marginTop: 12, fontWeight: 600 }}>
+              Menghapus user...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>👑 Dev Dashboard – Manajemen Role</h2>
@@ -137,7 +150,9 @@ export default function Dashboard() {
               <tr key={user.id} style={styles.tr}>
                 <td style={styles.td}>{user.email}</td>
                 <td style={styles.td}>
-                  <span style={{ textTransform: "capitalize" }}>{user.role}</span>
+                  <span style={{ textTransform: "capitalize" }}>
+                    {user.role}
+                  </span>
                 </td>
                 <td style={styles.td}>
                   {user.role !== "dev" ? (
@@ -187,18 +202,6 @@ export default function Dashboard() {
           </tbody>
         </table>
       </div>
-
-      {/* 🔄 Loading Overlay saat delete */}
-      {deleting && (
-        <div style={styles.loadingOverlay}>
-          <div style={styles.loadingBox}>
-            <div style={styles.spinner}></div>
-            <p style={{ marginTop: 12, color: "#1e3a8a", fontWeight: 600 }}>
-              Menghapus user...
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -286,35 +289,30 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontWeight: 500,
   },
-  loadingOverlay: {
+  // 🔄 Loading overlay
+  overlay: {
     position: "fixed",
     top: 0,
     left: 0,
     width: "100vw",
     height: "100vh",
-    background: "rgba(255,255,255,0.8)",
+    background: "rgba(0,0,0,0.5)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 9999,
   },
-  loadingBox: {
-    background: "#fff",
-    padding: "30px 40px",
-    borderRadius: 12,
-    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+  loaderBox: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
   },
   spinner: {
-    width: 40,
-    height: 40,
-    border: "4px solid #d1d5db",
-    borderTop: "4px solid #2563eb",
+    width: "50px",
+    height: "50px",
+    border: "6px solid #fff",
+    borderTop: "6px solid transparent",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
 };
-
-

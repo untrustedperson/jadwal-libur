@@ -21,6 +21,11 @@ export default function Register() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
+      // 🔹 Simpan ke koleksi employees agar muncul di daftar pegawai
+      await setDoc(doc(db, "employees", uid), {
+      name: email.split("@")[0],
+      });
+
       // 🔹 Simpan role default di Firestore
       await setDoc(doc(db, "roles", uid), {
         email,
