@@ -642,7 +642,7 @@ const selectStyles = {
                   <td
                     colSpan={4}
                     style={{
-                      textAlign: "center",
+                      textAlign: "left",
                       padding: 12,
                       color: "#6b7280",
                       fontStyle: "italic",
