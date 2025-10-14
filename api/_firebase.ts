@@ -1,5 +1,6 @@
 import admin from "firebase-admin";
 
+// 🔒 Pastikan hanya diinisialisasi sekali
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -10,8 +11,22 @@ if (!admin.apps.length) {
   });
 }
 
+// 🔹 Firestore instance
 export const db = admin.firestore();
+export { admin };
 
+/**
+ * ✅ Utility: memastikan env variable ada
+ */
+export function assertEnv(name: string) {
+  if (!process.env[name]) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+}
+
+/**
+ * ✅ Utility: ambil instance Firestore
+ */
 export function getDb() {
   return db;
 }

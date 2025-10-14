@@ -87,11 +87,12 @@ async function handleDeleteUser(uid: string) {
       body: JSON.stringify({ uid }),
     });
 
-    const text = await res.text(); // baca raw text
+    const text = await res.text();
     let data;
     try {
       data = JSON.parse(text);
     } catch {
+      console.error("Respon bukan JSON:", text);
       throw new Error(text);
     }
 
@@ -100,7 +101,7 @@ async function handleDeleteUser(uid: string) {
     alert("✅ User berhasil dihapus.");
   } catch (err: any) {
     console.error("Gagal hapus user:", err);
-    alert("❌ Gagal hapus user: " + err.message);
+    alert("❌ " + err.message);
   }
 }
 
