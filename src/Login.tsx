@@ -1,8 +1,8 @@
-import { useState } from "react"; // ⬅️ hapus useEffect karena tidak digunakan
+import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ Tambahkan Link
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -91,9 +91,9 @@ export default function Login() {
 
         <p style={styles.linkText}>
           Belum punya akun?{" "}
-          <a href="/register" style={styles.link}>
+          <Link to="/register" style={styles.link}>
             Daftar
-          </a>
+          </Link>
         </p>
       </div>
     </div>
@@ -142,4 +142,3 @@ const styles: Record<string, React.CSSProperties> = {
   linkText: { color: "#2563eb", marginTop: 16, fontSize: 14 },
   link: { color: "#2563eb", fontWeight: 600, textDecoration: "none" },
 };
-
