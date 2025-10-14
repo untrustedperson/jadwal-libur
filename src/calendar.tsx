@@ -83,48 +83,60 @@ export default function Calendar() {
     return () => unsub();
   }, []);
 
-  /* ========== Libur Nasional / Bali ========== */
-  async function fetchHolidays(year: number) {
-    try {
-      const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
-      const resp = await fetch(url);
-      if (!resp.ok) return console.error("❌ Error:", resp.status);
-      const data = await resp.json();
-      const formatted = data.map((d: any) => ({
-        id: d.date,
-        title: `🇮🇩 ${d.localName}`,
-        start: d.date,
-        backgroundColor: "#dc2626",
-        textColor: "#fff",
-      }));
-      setHolidays(formatted);
-    } catch (e) {
-      console.error("⚠️ fetchHolidays error:", e);
-    }
-  }
-
-  const baseBalineseHolidays = [
-    { title: "Hari Raya Saraswati", date: "02-08" },
-    { title: "Tumpek Landep", date: "02-22" },
-    { title: "Hari Raya Nyepi", date: "03-29" },
-    { title: "Ngembak Geni", date: "03-30" },
-    { title: "Hari Raya Galungan", date: "04-23" },
-    { title: "Hari Raya Kuningan", date: "05-03" },
-  ];
-
-  const generateBalineseHolidays = (year: number) =>
-    baseBalineseHolidays.map((b) => ({
-      id: `${year}-${b.date}-${b.title}`,
-      title: `🌺 ${b.title}`,
-      start: `${year}-${b.date}`,
-      backgroundColor: "#16a34a",
+/* ========== Libur Nasional / Bali ========== */
+async function fetchHolidays(year: number) {
+  try {
+    const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`Gagal fetch (${resp.status})`);
+    const data = await resp.json();
+    const formatted = data.map((d: any) => ({
+      id: d.date,
+      title: `🇮🇩 ${d.localName}`,
+      start: d.date,
+      backgroundColor: "#dc2626",
       textColor: "#fff",
+      allDay: true,
     }));
+    console.log("✅ Libur Nasional Ditemukan:", formatted.length);
+    setHolidays(formatted);
+  } catch (e) {
+    console.error("⚠️ Gagal memuat libur nasional:", e);
+  }
+}
 
-  useEffect(() => {
-    fetchHolidays(selectedYear);
+// Daftar hari raya Bali (statis)
+const baseBalineseHolidays = [
+  { title: "Hari Raya Saraswati", date: "02-08" },
+  { title: "Tumpek Landep", date: "02-22" },
+  { title: "Hari Raya Nyepi", date: "03-29" },
+  { title: "Ngembak Geni", date: "03-30" },
+  { title: "Hari Raya Galungan", date: "04-23" },
+  { title: "Hari Raya Kuningan", date: "05-03" },
+];
+
+const generateBalineseHolidays = (year: number) =>
+  baseBalineseHolidays.map((b) => ({
+    id: `${year}-${b.date}-${b.title}`,
+    title: `🌺 ${b.title}`,
+    start: `${year}-${b.date}`,
+    backgroundColor: "#16a34a",
+    textColor: "#fff",
+    allDay: true,
+  }));
+
+useEffect(() => {
+  console.log("📅 Memuat libur nasional & Bali untuk tahun", selectedYear);
+  fetchHolidays(selectedYear);
+  setBalineseHolidays(generateBalineseHolidays(selectedYear));
+}, [selectedYear]);
+
+// Tambahkan efek re-render bila user menyalakan kembali checkbox
+useEffect(() => {
+  if (showNationalHolidays && holidays.length === 0) fetchHolidays(selectedYear);
+  if (showBalineseHolidays && balineseHolidays.length === 0)
     setBalineseHolidays(generateBalineseHolidays(selectedYear));
-  }, [selectedYear]);
+}, [showNationalHolidays, showBalineseHolidays]);
 
   /* ========== Auth ========== */
   async function handleLogout() {
@@ -422,21 +434,21 @@ const selectStyles = {
               setSelectedEventId(info.event.id);
               setShowDeleteModal(true);
             }}
-            events={[
-              ...events.map((e) => {
-                const status = (e.status || "pending").toLowerCase();
-                const bg =
-                  status === "approved"
-                    ? "#2563eb"
-                    : status === "pending"
-                    ? "#facc15"
-                    : "#9ca3af";
-                const txt = status === "pending" ? "#000" : "#fff";
-                return { ...e, backgroundColor: bg, textColor: txt };
-              }),
-              ...(showNationalHolidays ? holidays : []),
-              ...(showBalineseHolidays ? balineseHolidays : []),
-            ]}
+                      events={[
+            ...events.map((e) => {
+              const status = (e.status || "pending").toLowerCase();
+              const bg =
+                status === "approved"
+                  ? "#2563eb"
+                  : status === "pending"
+                  ? "#facc15"
+                  : "#9ca3af";
+              const txt = status === "pending" ? "#000" : "#fff";
+              return { ...e, backgroundColor: bg, textColor: txt };
+            }),
+            ...(showNationalHolidays ? holidays : []),
+            ...(showBalineseHolidays ? balineseHolidays : []),
+          ]}
           />
         </div>
 
