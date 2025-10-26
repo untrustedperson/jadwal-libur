@@ -768,8 +768,8 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
               🕒 Daftar Pengajuan Pending
             </h2>
              {/* Dropdown urutkan */}
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#374151" }}>Urutkan:</label>
+    <div style={{ display: "flex", alignItems: "right", gap: 8 }}>
+      <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827" }}>Urutkan:</label>
       <select
         id="pending-sort"
         value={pendingSort}
@@ -780,6 +780,7 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
           border: "1px solid #d1d5db",
           fontSize: 14,
           background: "#fff",
+          color: "#111827",
         }}
       >
         <option value="name-asc">Pegawai A → Z</option>
@@ -818,9 +819,6 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
         </td>
         <td style={{ padding: "12px 10px", color: "#111827", wordBreak: "break-word" }}>
           {Array.isArray(e.leaveType) ? e.leaveType.join(", ") : e.leaveType}
-        </td>
-        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
-          {e.start}
         </td>
         <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
         {formatDateTime(e.createdAt)}
