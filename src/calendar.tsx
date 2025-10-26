@@ -414,19 +414,6 @@ function formatDateTime(
     }).format(d);
   }
 
-  // Jika sudah Date
-  if (value instanceof Date) {
-    return new Intl.DateTimeFormat("id-ID", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).format(value);
-  }
-
   // Jika masih FieldValue (serverTimestamp sentinel) atau tipe lain
   return "–";
 }
@@ -632,73 +619,26 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
           ]}
           />
           {/* === LEGEND (pusat) === */}
-<div style={{ display: "flex", justifyContent: "center", margin: "8px 0 20px" }}>
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      flexWrap: "wrap",
-      background: "#fff",
-      padding: "10px 14px",
-      borderRadius: 12,
-      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-    }}
-  >
-    <LegendItem color="#dc2626" label="Hari Raya Indonesia" />
-    <LegendItem color="#16a34a" label="Hari Raya Bali" />
-    <LegendItem color="#2563eb" label="Cuti Disetujui" />
-    <LegendItem color="#facc15" label="Pengajuan Pending" />
-    <LegendItem color="#9ca3af" label="Ditolak" />
-  </div>
-</div>
-
-          {/* === LEGENDA === */}
-<div
-  style={{
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-    alignItems: "center",
-    marginTop: 12,
-  }}
->
-  {/* item legenda helper */}
-  {[
-    { label: "Hari Raya Indonesia", bg: "#dc2626", txt: "#fff" },
-    { label: "Hari Raya Bali", bg: "#16a34a", txt: "#fff" },
-    { label: "Cuti Disetujui", bg: "#2563eb", txt: "#fff" },
-    { label: "Pengajuan Pending", bg: "#facc15", txt: "#000" },
-    { label: "Ditolak", bg: "#9ca3af", txt: "#fff" },
-  ].map((l) => (
-    <span
-      key={l.label}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        background: "#f9fafb",
-        border: "1px solid #e5e7eb",
-        borderRadius: 9999,
-        padding: "6px 10px",
-      }}
-    >
-      <span
-        style={{
-          width: 12,
-          height: 12,
-          borderRadius: 4,
-          background: l.bg,
-          border: "1px solid rgba(0,0,0,0.15)",
-        }}
-      />
-      <span style={{ color: "#111827", fontSize: 13, fontWeight: 600 }}>
-        {l.label}
-      </span>
-    </span>
-  ))}
-</div>
-
+          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 20px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                flexWrap: "wrap",
+                background: "#fff",
+                padding: "10px 14px",
+                borderRadius: 12,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              }}
+            >
+              <LegendItem color="#dc2626" label="Hari Raya Indonesia" />
+              <LegendItem color="#16a34a" label="Hari Raya Bali" />
+              <LegendItem color="#2563eb" label="Cuti Disetujui" />
+              <LegendItem color="#facc15" label="Pengajuan Pending" />
+              <LegendItem color="#9ca3af" label="Ditolak" />
+            </div>
+          </div>
 
         </div>
 
@@ -792,10 +732,10 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
             >
               <thead>
                 <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
-                  <th style={{ padding: "12px 10px", width: "25%" }}>Pegawai</th>
-                  <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
+                  <th style={{ padding: "12px 10px", width: "25%" }}>Pegawai</th>                
                   <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal</th>
                   <th style={{ padding: "12px 10px", width: "20%" }}>Diajukan Pada</th>
+                  <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
                   <th style={{ padding: "12px 10px", minWidth: "220", textAlign: "left" }}>Aksi</th>
                 </tr>
               </thead>
