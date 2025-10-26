@@ -417,21 +417,6 @@ function formatDateTime(
   // Jika masih FieldValue (serverTimestamp sentinel) atau tipe lain
   return "–";
 }
-// helper untuk item legenda
-const LegendItem = ({ color, label }: { color: string; label: string }) => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-    <span
-      style={{
-        width: 14,
-        height: 14,
-        borderRadius: 4,
-        background: color,
-        border: "1px solid rgba(0,0,0,0.15)",
-      }}
-    />
-    <span style={{ color: "#111827", fontSize: 13 }}>{label}</span>
-  </span>
-);
 type PendingSort =
   | "name-asc"
   | "name-desc"
@@ -678,13 +663,37 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
                 boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
               }}
             >
-              <LegendItem color="#dc2626" label="Hari Raya Indonesia" />
-              <LegendItem color="#16a34a" label="Hari Raya Bali" />
-              <LegendItem color="#2563eb" label="Cuti Disetujui" />
-              <LegendItem color="#facc15" label="Pengajuan Pending" />
-              <LegendItem color="#9ca3af" label="Ditolak" />
-            </div>
-          </div>
+              {[
+              {color:"#dc2626", label:"Hari Raya Indonesia"},
+              {color:"#16a34a", label:"Hari Raya Bali"},
+              {color:"#2563eb", label:"Cuti Disetujui"},
+              {color:"#facc15",label:"Pengajuan Pending"},
+              {color:"#9ca3af", label:"Ditolak"},
+            ].map((item) => (
+    <div
+      key={item.label}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: "1.05rem", 
+        fontWeight: 600, 
+        color: "#111827",
+      }}
+    >
+      <div
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 4,
+          background: item.color,
+        }}
+      />
+      {item.label}
+    </div>
+  ))}
+</div>
+</div>
 
         </div>
 
@@ -788,32 +797,32 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
             boxShadow: "0 2px 6px rgba(0,0,0,0.1)", 
           }}
           >
-          <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827", marginRight : 8 }}>Urutkan dari :</label>
           <select
-            id="pending-sort"
-            value={pendingSort}
-            onChange={(e) => setPendingSort(e.target.value as PendingSort)}
-            style={{
-              color: "#111827",
-              position: "absolute",
-              top: 24,
-              right: 24,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              background: "rgba(255,255,255,0.9)",
-              padding: "4px 8px",
-              borderRadius: 8,
-              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            }}
-          >
-        <option value="name-asc">Pegawai A → Z</option>
-        <option value="name-desc">Pegawai Z → A</option>
-        <option value="date-asc">Tanggal libur: awal → akhir</option>
-        <option value="date-desc">Tanggal libur: akhir → awal</option>
-        <option value="created-new">Diajukan: terbaru → terlama</option>
-        <option value="created-old">Diajukan: terlama → terbaru</option>
-      </select>
+          id="pending-sort"
+          value={pendingSort}
+          onChange={(e) => setPendingSort(e.target.value as PendingSort)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #d1d5db",
+            fontSize: 14,
+            background: "#fff",
+            color: pendingSort ? "#111827" : "#6b7280", // abu-abu kalau belum dipilih
+            fontWeight: 500,
+            cursor: "pointer",
+            minWidth: 180,
+          }}
+        >
+          <option value="" disabled hidden>
+            Urutkan...
+          </option>
+          <option value="name-asc">Pegawai A → Z</option>
+          <option value="name-desc">Pegawai Z → A</option>
+          <option value="date-asc">Tanggal Libur: Awal → Akhir</option>
+          <option value="date-desc">Tanggal Libur: Akhir → Awal</option>
+          <option value="created-new">Diajukan: Terbaru → Terlama</option>
+          <option value="created-old">Diajukan: Terlama → Terbaru</option>
+        </select>
     </div>
             <table
               style={{
