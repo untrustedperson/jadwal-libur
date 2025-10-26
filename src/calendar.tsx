@@ -775,6 +775,7 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
             </h2>
              {/* Dropdown urutkan */}
         <div style={{  
+            color: "#111827",
             position: "absolute",
             top: 24,
             right: 24,
@@ -793,6 +794,7 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
             value={pendingSort}
             onChange={(e) => setPendingSort(e.target.value as PendingSort)}
             style={{
+              color: "#111827",
               position: "absolute",
               top: 24,
               right: 24,
