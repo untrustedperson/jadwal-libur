@@ -768,21 +768,37 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
               🕒 Daftar Pengajuan Pending
             </h2>
              {/* Dropdown urutkan */}
-    <div style={{ display: "flex", alignItems: "right", gap: 8 }}>
-      <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827" }}>Urutkan:</label>
-      <select
-        id="pending-sort"
-        value={pendingSort}
-        onChange={(e) => setPendingSort(e.target.value as PendingSort)}
-        style={{
-          padding: "8px 10px",
-          borderRadius: 8,
-          border: "1px solid #d1d5db",
-          fontSize: 14,
-          background: "#fff",
-          color: "#111827",
-        }}
-      >
+        <div style={{  
+            position: "absolute",
+            top: 24,
+            right: 24,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(255,255,255,0.9)",
+            padding: "4px 8px",
+            borderRadius: 8,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)", 
+          }}
+          >
+          <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827" }}>Urutkan:</label>
+          <select
+            id="pending-sort"
+            value={pendingSort}
+            onChange={(e) => setPendingSort(e.target.value as PendingSort)}
+            style={{
+              position: "absolute",
+              top: 24,
+              right: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "rgba(255,255,255,0.9)",
+              padding: "4px 8px",
+              borderRadius: 8,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            }}
+          >
         <option value="name-asc">Pegawai A → Z</option>
         <option value="name-desc">Pegawai Z → A</option>
         <option value="date-asc">Tanggal libur: awal → akhir</option>
@@ -822,6 +838,8 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
         </td>
         <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
         {formatDateTime(e.createdAt)}
+        </td>
+        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
         </td>
         <td
           style={{
