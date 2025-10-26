@@ -430,6 +430,22 @@ function formatDateTime(
   // Jika masih FieldValue (serverTimestamp sentinel) atau tipe lain
   return "–";
 }
+// helper untuk item legenda
+const LegendItem = ({ color, label }: { color: string; label: string }) => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    <span
+      style={{
+        width: 14,
+        height: 14,
+        borderRadius: 4,
+        background: color,
+        border: "1px solid rgba(0,0,0,0.15)",
+      }}
+    />
+    <span style={{ color: "#111827", fontSize: 13 }}>{label}</span>
+  </span>
+);
+
   return (
     <div
       style={{
@@ -615,6 +631,28 @@ function formatDateTime(
             ...(showBalineseHolidays ? balineseHolidays : []),
           ]}
           />
+          {/* === LEGEND (pusat) === */}
+<div style={{ display: "flex", justifyContent: "center", margin: "8px 0 20px" }}>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 14,
+      flexWrap: "wrap",
+      background: "#fff",
+      padding: "10px 14px",
+      borderRadius: 12,
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+    }}
+  >
+    <LegendItem color="#dc2626" label="Hari Raya Indonesia" />
+    <LegendItem color="#16a34a" label="Hari Raya Bali" />
+    <LegendItem color="#2563eb" label="Cuti Disetujui" />
+    <LegendItem color="#facc15" label="Pengajuan Pending" />
+    <LegendItem color="#9ca3af" label="Ditolak" />
+  </div>
+</div>
+
           {/* === LEGENDA === */}
 <div
   style={{
@@ -660,6 +698,8 @@ function formatDateTime(
     </span>
   ))}
 </div>
+
+
         </div>
 
         {/* === MODAL HAPUS === */}
@@ -747,7 +787,7 @@ function formatDateTime(
                 borderCollapse: "collapse",
                 background: "#f9fafb",
                 marginTop: 10,
-                tableLayout: "fixed",
+                tableLayout: "auto",
               }}
             >
               <thead>
@@ -756,7 +796,7 @@ function formatDateTime(
                   <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
                   <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal</th>
                   <th style={{ padding: "12px 10px", width: "20%" }}>Diajukan Pada</th>
-                  <th style={{ padding: "12px 10px", width: "20%", textAlign: "left" }}>Aksi</th>
+                  <th style={{ padding: "12px 10px", minWidth: "220", textAlign: "left" }}>Aksi</th>
                 </tr>
               </thead>
 
@@ -816,39 +856,40 @@ function formatDateTime(
                           style={{
                             padding: "12px 10px",
                             textAlign: "left",
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "8px",
+                            verticalAlign: "middle",
+                            overflow: "hidden",
                           }}
                         >
-                          <button
-                            onClick={() => approveEvent(e.id!)}
-                            style={{
-                              background: "#16a34a",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: 6,
-                              padding: "6px 12px",
-                              cursor: "pointer",
-                              fontWeight: 500,
-                            }}
-                          >
-                            Setujui
-                          </button>
-                          <button
-                            onClick={() => rejectEvent(e.id!)}
-                            style={{
-                              background: "#dc2626",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: 6,
-                              padding: "6px 12px",
-                              cursor: "pointer",
-                              fontWeight: 500,
-                            }}
-                          >
-                            Tolak
-                          </button>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", maxWidth: "100%" }}>
+                            <button
+                              onClick={() => approveEvent(e.id!)}
+                              style={{
+                                background: "#16a34a",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 6,
+                                padding: "6px 12px",
+                                cursor: "pointer",
+                                fontWeight: 500,
+                              }}
+                            >
+                              Setujui
+                            </button>
+                            <button
+                              onClick={() => rejectEvent(e.id!)}
+                              style={{
+                                background: "#dc2626",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 6,
+                                padding: "6px 12px",
+                                cursor: "pointer",
+                                fontWeight: 500,
+                              }}
+                            >
+                              Tolak
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
