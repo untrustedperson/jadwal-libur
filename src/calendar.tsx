@@ -756,15 +756,21 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
         {canEdit && (
           <div
             style={{
-              background: "#fff",
-              borderRadius: 16,
-              padding: 24,
-              marginBottom: 24,
-              boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-              color: "#111827",
+                  background: "#fff",
+                  borderRadius: 16,
+                  padding: 24,
+                  marginBottom: 24,
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                  color: "#111827",
+                  position: "relative",
             }}
           >
-            <h2 style={{ color: "#1e3a8a", fontWeight: 700, fontSize: "1.4rem" }}>
+            <h2 style={{ 
+                  color: "#1e3a8a",
+                  fontWeight: 700,
+                  fontSize: "1.4rem",
+                  marginBottom: 16,
+              }}>
               🕒 Daftar Pengajuan Pending
             </h2>
              {/* Dropdown urutkan */}
