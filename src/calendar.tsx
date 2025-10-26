@@ -6,6 +6,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import Select from "react-select";
+import { Timestamp, FieldValue } from "firebase/firestore";
 import {
   collection,
   addDoc,
@@ -13,6 +14,7 @@ import {
   doc,
   onSnapshot,
   updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 interface CalendarEvent {
@@ -26,6 +28,7 @@ interface CalendarEvent {
   backgroundColor?: string;
   textColor?: string;
   allDay?: boolean;
+  createdAt?: Timestamp | Date | FieldValue | null;
 }
 
 export default function Calendar() {
@@ -287,6 +290,7 @@ useEffect(() => {
       start: selectedDate,
       end: selectedDate,
       status: leaveStatus,
+      createdAt: serverTimestamp(),
     };
 
     await addDoc(eventsCollection, newEvent);
@@ -389,6 +393,43 @@ const selectStyles = {
   }),
 };
 
+function formatDateTime(
+  value?: Timestamp | Date | FieldValue | null
+): string {
+  if (!value) return "–";
+
+  // Jika Timestamp Firestore
+  // (cek yang aman: punya toDate + seconds)
+  const maybeTs = value as any;
+  if (maybeTs && typeof maybeTs.toDate === "function" && typeof maybeTs.seconds === "number") {
+    const d: Date = maybeTs.toDate();
+    return new Intl.DateTimeFormat("id-ID", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(d);
+  }
+
+  // Jika sudah Date
+  if (value instanceof Date) {
+    return new Intl.DateTimeFormat("id-ID", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(value);
+  }
+
+  // Jika masih FieldValue (serverTimestamp sentinel) atau tipe lain
+  return "–";
+}
   return (
     <div
       style={{
@@ -574,6 +615,51 @@ const selectStyles = {
             ...(showBalineseHolidays ? balineseHolidays : []),
           ]}
           />
+          {/* === LEGENDA === */}
+<div
+  style={{
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 12,
+    alignItems: "center",
+    marginTop: 12,
+  }}
+>
+  {/* item legenda helper */}
+  {[
+    { label: "Hari Raya Indonesia", bg: "#dc2626", txt: "#fff" },
+    { label: "Hari Raya Bali", bg: "#16a34a", txt: "#fff" },
+    { label: "Cuti Disetujui", bg: "#2563eb", txt: "#fff" },
+    { label: "Pengajuan Pending", bg: "#facc15", txt: "#000" },
+    { label: "Ditolak", bg: "#9ca3af", txt: "#fff" },
+  ].map((l) => (
+    <span
+      key={l.label}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        background: "#f9fafb",
+        border: "1px solid #e5e7eb",
+        borderRadius: 9999,
+        padding: "6px 10px",
+      }}
+    >
+      <span
+        style={{
+          width: 12,
+          height: 12,
+          borderRadius: 4,
+          background: l.bg,
+          border: "1px solid rgba(0,0,0,0.15)",
+        }}
+      />
+      <span style={{ color: "#111827", fontSize: 13, fontWeight: 600 }}>
+        {l.label}
+      </span>
+    </span>
+  ))}
+</div>
         </div>
 
         {/* === MODAL HAPUS === */}
@@ -669,6 +755,7 @@ const selectStyles = {
                   <th style={{ padding: "12px 10px", width: "25%" }}>Pegawai</th>
                   <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
                   <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal</th>
+                  <th style={{ padding: "12px 10px", width: "20%" }}>Diajukan Pada</th>
                   <th style={{ padding: "12px 10px", width: "20%", textAlign: "left" }}>Aksi</th>
                 </tr>
               </thead>
@@ -695,6 +782,14 @@ const selectStyles = {
                         >
                           {e.employee}
                         </td>
+                          <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
+                            {e.start}
+                          </td>
+
+                          <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
+                            {formatDateTime(e.createdAt)}
+                          </td>
+
                         <td
                           style={{
                             padding: "12px 10px",
@@ -760,7 +855,7 @@ const selectStyles = {
                 ) : (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       style={{
                         textAlign: "center",
                         padding: 12,
