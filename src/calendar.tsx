@@ -671,6 +671,7 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
                 display: "flex",
                 alignItems: "center",
                 gap: 14,
+                fontSize: "2.5rem",
                 flexWrap: "wrap",
                 background: "#fff",
                 padding: "10px 14px",
@@ -788,7 +789,7 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
             boxShadow: "0 2px 6px rgba(0,0,0,0.1)", 
           }}
           >
-          <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827" }}>Urutkan dari :</label>
+          <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827" }}>Urutkan dari :        </label>
           <select
             id="pending-sort"
             value={pendingSort}
