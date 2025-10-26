@@ -823,22 +823,6 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
         <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
         {formatDateTime(e.createdAt)}
         </td>
-        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
-          {/* Diajukan pada */}
-          {(() => {
-            const t = toMillis(e.createdAt);
-            if (!t) return "-";
-            const d = new Date(t);
-            return d.toLocaleString("id-ID", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            });
-          })()}
-        </td>
         <td
           style={{
             padding: "12px 10px",
