@@ -762,6 +762,9 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
                         >
                           {e.employee}
                         </td>
+                          <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
+                            {e.start}
+                          </td>
 
                           <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
                             {formatDateTime(e.createdAt)}
@@ -777,15 +780,6 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
                           {Array.isArray(e.leaveType)
                             ? e.leaveType.join(", ")
                             : e.leaveType}
-                        </td>
-                        <td
-                          style={{
-                            padding: "12px 10px",
-                            color: "#111827",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {e.start}
                         </td>
 
                         {/* ✅ Kolom aksi kini rata kiri */}
