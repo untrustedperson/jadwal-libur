@@ -788,7 +788,7 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
             boxShadow: "0 2px 6px rgba(0,0,0,0.1)", 
           }}
           >
-          <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827" }}>Urutkan:</label>
+          <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#111827" }}>Urutkan dari :</label>
           <select
             id="pending-sort"
             value={pendingSort}
@@ -827,9 +827,9 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
               <thead>
                 <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
                   <th style={{ padding: "12px 10px", width: "25%" }}>Pegawai</th>                
-                  <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal</th>
-                  <th style={{ padding: "12px 10px", width: "20%" }}>Diajukan Pada</th>
+                  <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal libur</th>
                   <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
+                  <th style={{ padding: "12px 10px", width: "20%" }}>Diajukan Pada</th>
                   <th style={{ padding: "12px 10px", minWidth: "220", textAlign: "left" }}>Aksi</th>
                 </tr>
               </thead>
@@ -840,6 +840,9 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
       <tr key={e.id} style={{ borderBottom: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
         <td style={{ padding: "12px 10px", color: "#111827", fontWeight: 500, wordBreak: "break-word" }}>
           {e.employee}
+        </td>
+        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
+        {e.start}
         </td>
         <td style={{ padding: "12px 10px", color: "#111827", wordBreak: "break-word" }}>
           {Array.isArray(e.leaveType) ? e.leaveType.join(", ") : e.leaveType}
