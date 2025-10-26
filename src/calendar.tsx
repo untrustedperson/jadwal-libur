@@ -432,6 +432,52 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
     <span style={{ color: "#111827", fontSize: 13 }}>{label}</span>
   </span>
 );
+type PendingSort =
+  | "name-asc"
+  | "name-desc"
+  | "date-asc"
+  | "date-desc"
+  | "created-new"
+  | "created-old";
+
+const [pendingSort, setPendingSort] = useState<PendingSort>("created-new");
+
+// aman konversi createdAt ke millis
+const toMillis = (v: any) => {
+  if (!v) return 0;
+  if (typeof v.toMillis === "function") return v.toMillis();
+  if (v instanceof Date) return v.getTime();
+  return 0;
+};
+
+// daftar pending yang sudah diurutkan
+const pendingEvents = events.filter((e) => (e.status || "").toLowerCase() === "pending");
+
+const sortedPending = [...pendingEvents].sort((a, b) => {
+  const nameA = (a.employee || "").toString();
+  const nameB = (b.employee || "").toString();
+  const dateA = new Date(a.start).getTime();
+  const dateB = new Date(b.start).getTime();
+  const createdA = toMillis(a.createdAt);
+  const createdB = toMillis(b.createdAt);
+
+  switch (pendingSort) {
+    case "name-asc":
+      return nameA.localeCompare(nameB, "id", { sensitivity: "base" });
+    case "name-desc":
+      return nameB.localeCompare(nameA, "id", { sensitivity: "base" });
+    case "date-asc":
+      return dateA - dateB;
+    case "date-desc":
+      return dateB - dateA;
+    case "created-new":
+      return createdB - createdA; // terbaru dulu
+    case "created-old":
+      return createdA - createdB; // terlama dulu
+    default:
+      return 0;
+  }
+});
 
   return (
     <div
@@ -721,6 +767,29 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
             <h2 style={{ color: "#1e3a8a", fontWeight: 700, fontSize: "1.4rem" }}>
               🕒 Daftar Pengajuan Pending
             </h2>
+             {/* Dropdown urutkan */}
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <label htmlFor="pending-sort" style={{ fontSize: 14, color: "#374151" }}>Urutkan:</label>
+      <select
+        id="pending-sort"
+        value={pendingSort}
+        onChange={(e) => setPendingSort(e.target.value as PendingSort)}
+        style={{
+          padding: "8px 10px",
+          borderRadius: 8,
+          border: "1px solid #d1d5db",
+          fontSize: 14,
+          background: "#fff",
+        }}
+      >
+        <option value="name-asc">Pegawai A → Z</option>
+        <option value="name-desc">Pegawai Z → A</option>
+        <option value="date-asc">Tanggal libur: awal → akhir</option>
+        <option value="date-desc">Tanggal libur: akhir → awal</option>
+        <option value="created-new">Diajukan: terbaru → terlama</option>
+        <option value="created-old">Diajukan: terlama → terbaru</option>
+      </select>
+    </div>
             <table
               style={{
                 width: "100%",
@@ -740,106 +809,88 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
                 </tr>
               </thead>
 
-              <tbody>
-                {events.filter((e) => e.status === "pending").length ? (
-                  events
-                    .filter((e) => e.status === "pending")
-                    .map((e) => (
-                      <tr
-                        key={e.id}
-                        style={{
-                          borderBottom: "1px solid #e5e7eb",
-                          backgroundColor: "#fff",
-                        }}
-                      >
-                        <td
-                          style={{
-                            padding: "12px 10px",
-                            color: "#111827",
-                            fontWeight: 500,
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {e.employee}
-                        </td>
-                          <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
-                            {e.start}
-                          </td>
+<tbody>
+  {sortedPending.length ? (
+    sortedPending.map((e) => (
+      <tr key={e.id} style={{ borderBottom: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
+        <td style={{ padding: "12px 10px", color: "#111827", fontWeight: 500, wordBreak: "break-word" }}>
+          {e.employee}
+        </td>
+        <td style={{ padding: "12px 10px", color: "#111827", wordBreak: "break-word" }}>
+          {Array.isArray(e.leaveType) ? e.leaveType.join(", ") : e.leaveType}
+        </td>
+        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
+          {e.start}
+        </td>
+        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
+        {formatDateTime(e.createdAt)}
+        </td>
+        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
+          {/* Diajukan pada */}
+          {(() => {
+            const t = toMillis(e.createdAt);
+            if (!t) return "-";
+            const d = new Date(t);
+            return d.toLocaleString("id-ID", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+          })()}
+        </td>
+        <td
+          style={{
+            padding: "12px 10px",
+            textAlign: "left",
+            verticalAlign: "middle",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", maxWidth: "100%" }}>
+            <button
+              onClick={() => approveEvent(e.id!)}
+              style={{
+                background: "#16a34a",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              Setujui
+            </button>
+            <button
+              onClick={() => rejectEvent(e.id!)}
+              style={{
+                background: "#dc2626",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              Tolak
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td colSpan={5} style={{ textAlign: "center", padding: 12, color: "#6b7280", fontStyle: "italic" }}>
+        Tidak ada pengajuan pending.
+      </td>
+    </tr>
+  )}
+</tbody>
 
-                          <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
-                            {formatDateTime(e.createdAt)}
-                          </td>
-
-                        <td
-                          style={{
-                            padding: "12px 10px",
-                            color: "#111827",
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {Array.isArray(e.leaveType)
-                            ? e.leaveType.join(", ")
-                            : e.leaveType}
-                        </td>
-
-                        {/* ✅ Kolom aksi kini rata kiri */}
-                        <td
-                          style={{
-                            padding: "12px 10px",
-                            textAlign: "left",
-                            verticalAlign: "middle",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", maxWidth: "100%" }}>
-                            <button
-                              onClick={() => approveEvent(e.id!)}
-                              style={{
-                                background: "#16a34a",
-                                color: "#fff",
-                                border: "none",
-                                borderRadius: 6,
-                                padding: "6px 12px",
-                                cursor: "pointer",
-                                fontWeight: 500,
-                              }}
-                            >
-                              Setujui
-                            </button>
-                            <button
-                              onClick={() => rejectEvent(e.id!)}
-                              style={{
-                                background: "#dc2626",
-                                color: "#fff",
-                                border: "none",
-                                borderRadius: 6,
-                                padding: "6px 12px",
-                                cursor: "pointer",
-                                fontWeight: 500,
-                              }}
-                            >
-                              Tolak
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      style={{
-                        textAlign: "center",
-                        padding: 12,
-                        color: "#6b7280",
-                        fontStyle: "italic",
-                      }}
-                    >
-                      Tidak ada pengajuan pending.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
             </table>
           </div>
         )}
