@@ -9,55 +9,52 @@ export default function ResetPassword() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleReset(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg("");
-    setErr("");
-    setLoading(true);
+async function handleReset(e: React.FormEvent) {
+  e.preventDefault();
+  setMsg("");
+  setErr("");
+  setLoading(true);
 
+  try {
+    auth.languageCode = "id";
+    const CONTINUE_URL =
+      import.meta.env.VITE_CONTINUE_URL || "https://jadwal-libur-app.web.app/login";
+
+    // 1) Coba kirim dengan continue URL (redirect setelah user set password)
     try {
-      // ✅ Pastikan continue URL berasal dari domain kamu (harus ada di Authorized domains)
-      const CONTINUE_URL =
-    import.meta.env.VITE_CONTINUE_URL || "https://jadwal-libur-app.web.app/login";
-    // pastikan domain itu ada di Authorized domains
-    await sendPasswordResetEmail(auth, email, {
-    url: CONTINUE_URL,
-    handleCodeInApp: false,
-    });
-
-      setMsg(
-        "Tautan reset password sudah dikirim. Silakan cek inbox/spam email Anda."
-      );
+      await sendPasswordResetEmail(auth, email, {
+        url: CONTINUE_URL,
+        handleCodeInApp: false,
+      });
     } catch (e: any) {
-      console.error("reset error:", e);
-      let message = "Gagal mengirim tautan reset.";
-      switch (e.code) {
-        case "auth/invalid-email":
-          message = "Format email tidak valid.";
-          break;
-        case "auth/user-not-found":
-          // Catatan: beberapa project menyembunyikan error ini demi privasi.
-          message = "Email tidak terdaftar.";
-          break;
-        case "auth/too-many-requests":
-          message =
-            "Terlalu banyak percobaan. Coba lagi beberapa saat.";
-          break;
-        case "auth/network-request-failed":
-          message = "Jaringan bermasalah. Periksa koneksi internet Anda.";
-          break;
-        case "auth/unauthorized-continue-uri":
-          message =
-            "URL lanjutan (continue URL) belum diizinkan di Firebase Auth.";
-          break;
-        default:
-          message = e.message || message;
+      // 2) Kalau domain belum di-authorize, fallback kirim TANPA actionCodeSettings
+      if (e?.code === "auth/unauthorized-continue-uri") {
+        console.warn("Fallback tanpa continue URL:", e?.message);
+        await sendPasswordResetEmail(auth, email);
+      } else {
+        throw e;
       }
-      setErr(message);
-    } finally {
-      setLoading(false);
     }
+
+    setMsg("Tautan reset password sudah dikirim. Cek inbox/SPAM. (Jika email terdaftar)");
+  } catch (e: any) {
+    console.error("sendPasswordResetEmail error:", e?.code, e?.message);
+    // Pesan yang jelas tapi tetap aman
+    if (e?.code === "auth/invalid-email") {
+      setErr("Format email tidak valid.");
+    } else if (e?.code === "auth/network-request-failed") {
+      setErr("Jaringan bermasalah. Coba lagi.");
+    } else if (e?.code === "auth/user-not-found") {
+      // Tergantung setting, bisa saja tidak pernah muncul. Tetap kasih pesan netral:
+      setMsg("Jika email terdaftar, tautan reset akan dikirim.");
+    } else {
+      setErr("Gagal mengirim tautan reset. Coba lagi beberapa saat.");
+    }
+  } finally {
+    setLoading(false);
   }
+}
+
 
   return (
     <div style={styles.container}>
