@@ -17,12 +17,13 @@ export default function ResetPassword() {
 
     try {
       // ✅ Pastikan continue URL berasal dari domain kamu (harus ada di Authorized domains)
-      const actionCodeSettings = {
-        url: `${window.location.origin}/login`, // setelah klik "Reset", user kembali ke Login
-        handleCodeInApp: false, // reset password standar
-      };
-
-      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      const CONTINUE_URL =
+    import.meta.env.VITE_CONTINUE_URL || "https://jadwal-libur-app.web.app/login";
+    // pastikan domain itu ada di Authorized domains
+    await sendPasswordResetEmail(auth, email, {
+    url: CONTINUE_URL,
+    handleCodeInApp: false,
+    });
 
       setMsg(
         "Tautan reset password sudah dikirim. Silakan cek inbox/spam email Anda."
