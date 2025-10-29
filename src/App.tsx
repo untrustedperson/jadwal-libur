@@ -149,7 +149,7 @@ function AppContent() {
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Kalender */}
       <Route path="/calendar" element={<Calendar />} />

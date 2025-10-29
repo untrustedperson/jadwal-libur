@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "./firebaseConfig";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function ResetPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
@@ -19,7 +20,7 @@ export default function ResetPassword() {
       await sendPasswordResetEmail(auth, email.trim());
       setMsg("Tautan reset password telah dikirim. Cek email kamu.");
       // Opsional: kembali ke login setelah beberapa detik
-      // setTimeout(() => navigate("/login"), 2500);
+      setTimeout(() => navigate("/login"), 2500);
     } catch (err: any) {
       console.error("Reset password error:", err);
       switch (err.code) {
