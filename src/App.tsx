@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import Login from "./Login";
 import Register from "./Register";
+import ResetPassword from "./ResetPassword";
 import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
 import ManageEmployees from "./ManageEmployees";
@@ -148,6 +149,7 @@ function AppContent() {
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+       <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Kalender */}
       <Route path="/calendar" element={<Calendar />} />
