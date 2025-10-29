@@ -1,41 +1,58 @@
 import { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "./firebaseConfig";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function ResetPassword() {
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
-    setError("");
+    setErr("");
     setLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setMsg("Tautan reset password telah dikirim. Cek email kamu.");
-      // Opsional: kembali ke login setelah beberapa detik
-      setTimeout(() => navigate("/login"), 2500);
-    } catch (err: any) {
-      console.error("Reset password error:", err);
-      switch (err.code) {
+      // ✅ Pastikan continue URL berasal dari domain kamu (harus ada di Authorized domains)
+      const actionCodeSettings = {
+        url: `${window.location.origin}/login`, // setelah klik "Reset", user kembali ke Login
+        handleCodeInApp: false, // reset password standar
+      };
+
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+
+      setMsg(
+        "Tautan reset password sudah dikirim. Silakan cek inbox/spam email Anda."
+      );
+    } catch (e: any) {
+      console.error("reset error:", e);
+      let message = "Gagal mengirim tautan reset.";
+      switch (e.code) {
         case "auth/invalid-email":
-          setError("Format email tidak valid.");
+          message = "Format email tidak valid.";
           break;
         case "auth/user-not-found":
-          setError("Email tidak terdaftar.");
+          // Catatan: beberapa project menyembunyikan error ini demi privasi.
+          message = "Email tidak terdaftar.";
           break;
         case "auth/too-many-requests":
-          setError("Terlalu banyak percobaan. Coba lagi nanti.");
+          message =
+            "Terlalu banyak percobaan. Coba lagi beberapa saat.";
+          break;
+        case "auth/network-request-failed":
+          message = "Jaringan bermasalah. Periksa koneksi internet Anda.";
+          break;
+        case "auth/unauthorized-continue-uri":
+          message =
+            "URL lanjutan (continue URL) belum diizinkan di Firebase Auth.";
           break;
         default:
-          setError("Gagal mengirim email reset password.");
+          message = e.message || message;
       }
+      setErr(message);
     } finally {
       setLoading(false);
     }
@@ -44,7 +61,7 @@ export default function ResetPassword() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h2 style={styles.title}>🔑 Lupa Password</h2>
+        <h2 style={styles.title}>🔑 Reset Password</h2>
 
         <form onSubmit={handleReset} style={styles.form}>
           <input
@@ -60,11 +77,14 @@ export default function ResetPassword() {
           </button>
         </form>
 
-        {msg && <p style={{ ...styles.info, color: "#16a34a" }}>{msg}</p>}
-        {error && <p style={styles.error}>{error}</p>}
+        {msg && <p style={styles.success}>{msg}</p>}
+        {err && <p style={styles.error}>{err}</p>}
 
         <p style={styles.linkText}>
-          <Link to="/login" style={styles.link}>← Kembali ke Login</Link>
+          Kembali ke{" "}
+          <Link to="/login" style={styles.link}>
+            Login
+          </Link>
         </p>
       </div>
     </div>
@@ -108,8 +128,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: "pointer",
   },
+  success: { color: "#16a34a", fontSize: 14, marginTop: 8 },
   error: { color: "red", fontSize: 14, marginTop: 8 },
-  info: { fontSize: 14, marginTop: 8 },
   linkText: { color: "#2563eb", marginTop: 16, fontSize: 14 },
   link: { color: "#2563eb", fontWeight: 600, textDecoration: "none" },
 };
