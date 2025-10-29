@@ -95,7 +95,8 @@ export default function Login() {
             Daftar
           </Link>
         </p>
-      <p style={{ ...styles.linkText, marginTop: 8 }}>
+        
+      <p style={{...styles.linkText, marginTop: 8 }}>
         Lupa password?{" "}
         <Link to="/reset-password" style={styles.link}>
         Atur ulang
