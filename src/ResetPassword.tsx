@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "./firebaseConfig";
 import { Link } from "react-router-dom";
 
 export default function ResetPassword() {
@@ -16,40 +14,18 @@ async function handleReset(e: React.FormEvent) {
   setLoading(true);
 
   try {
-    auth.languageCode = "id";
-    const CONTINUE_URL =
-      import.meta.env.VITE_CONTINUE_URL || "https://jadwal-libur-app.web.app/login";
+    const res = await fetch("/api/send-reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Gagal mengirim tautan reset");
 
-    // 1) Coba kirim dengan continue URL (redirect setelah user set password)
-    try {
-      await sendPasswordResetEmail(auth, email, {
-        url: CONTINUE_URL,
-        handleCodeInApp: false,
-      });
-    } catch (e: any) {
-      // 2) Kalau domain belum di-authorize, fallback kirim TANPA actionCodeSettings
-      if (e?.code === "auth/unauthorized-continue-uri") {
-        console.warn("Fallback tanpa continue URL:", e?.message);
-        await sendPasswordResetEmail(auth, email);
-      } else {
-        throw e;
-      }
-    }
-
-    setMsg("Tautan reset password sudah dikirim. Cek inbox/SPAM. (Jika email terdaftar)");
+    setMsg("Tautan reset password sudah dikirim. Cek inbox/SPAM email Anda.");
   } catch (e: any) {
-    console.error("sendPasswordResetEmail error:", e?.code, e?.message);
-    // Pesan yang jelas tapi tetap aman
-    if (e?.code === "auth/invalid-email") {
-      setErr("Format email tidak valid.");
-    } else if (e?.code === "auth/network-request-failed") {
-      setErr("Jaringan bermasalah. Coba lagi.");
-    } else if (e?.code === "auth/user-not-found") {
-      // Tergantung setting, bisa saja tidak pernah muncul. Tetap kasih pesan netral:
-      setMsg("Jika email terdaftar, tautan reset akan dikirim.");
-    } else {
-      setErr("Gagal mengirim tautan reset. Coba lagi beberapa saat.");
-    }
+    console.error("reset error:", e);
+    setErr(e?.message || "Gagal mengirim tautan reset.");
   } finally {
     setLoading(false);
   }
