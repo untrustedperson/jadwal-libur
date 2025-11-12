@@ -47,15 +47,26 @@ export default function Login() {
         else navigate("/calendar", { replace: true });
       }, 300);
     } catch (err: any) {
-      console.error("Login error:", err);
-      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
-        setError("Email atau password salah.");
-      } else if (err.code === "auth/user-not-found") {
-        setError("Akun tidak ditemukan.");
-      } else {
-        setError("Terjadi kesalahan saat login.");
-      }
-    } finally {
+  console.error("Login error detail:", err.code, err.message);
+  
+  switch (err.code) {
+    case "auth/invalid-email":
+      setError("Format email tidak valid.");
+      break;
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+      setError("Email atau password salah.");
+      break;
+    case "auth/user-not-found":
+      setError("Akun tidak ditemukan.");
+      break;
+    case "auth/network-request-failed":
+      setError("Koneksi jaringan bermasalah. Periksa internet Anda.");
+      break;
+    default:
+      setError(`Terjadi kesalahan: ${err.message || "Tidak diketahui."}`);
+  }
+} finally {
       setLoading(false);
     }
   }
