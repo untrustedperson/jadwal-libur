@@ -38,21 +38,30 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
 
 useEffect(() => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  // 🕒 Fallback otomatis setelah 5 detik jika auth state tidak terdeteksi
+  timeoutId = setTimeout(() => {
+    console.warn("⏳ Timeout: auth state tidak terdeteksi, alihkan ke /login.");
+    setLoading(false);
+    navigate("/login", { replace: true });
+  }, 5000);
+
   const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+    if (timeoutId) clearTimeout(timeoutId); // ✅ Batalkan fallback jika listener terpicu
+
     const isDeletingUser = localStorage.getItem("deleting_user") === "true";
 
     if (!user && !isDeletingUser) {
       const localRole = localStorage.getItem("role");
       if (localRole === "dev") {
         console.log("⚠️ Auth token invalid tapi role dev tetap dipertahankan.");
-        setLoading(false); // ✅ FIX: pastikan tetap hilang loading
+        setLoading(false);
         return;
       }
 
       setRole(null);
       localStorage.removeItem("role");
-
-      // ✅ Pastikan loading di-set ke false walau user tidak ada
       setLoading(false);
 
       const PUBLIC_PATHS = ["/login", "/register", "/reset-password"];
@@ -62,7 +71,7 @@ useEffect(() => {
       return;
     }
 
-    // ✅ FIX: Tambahkan guard agar tidak menggantung
+    // ✅ Jika user kosong, akhiri loading
     if (!user) {
       setLoading(false);
       return;
@@ -98,41 +107,77 @@ useEffect(() => {
       setLoading(false);
     });
 
-    // ✅ Pastikan unsubscribeRole tidak menyebabkan race
     return () => {
       try {
         unsubscribeRole();
       } catch (e) {
-        console.warn("unsubscribeRole gagal (bisa diabaikan):", e);
+        console.warn("unsubscribeRole gagal:", e);
       }
     };
   });
 
-  return () => unsubscribeAuth();
+  // ✅ Bersihkan listener & timeout saat unmount
+  return () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    unsubscribeAuth();
+  };
 }, [navigate, location.pathname]);
 
-  if (loading) {
+
+ if (loading) {
   return (
     <div
       style={{
         height: "100vh",
         display: "flex",
+        flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
         fontSize: 18,
         color: "#2563eb",
         fontWeight: 600,
-        padding: 20,
+        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
         textAlign: "center",
       }}
     >
-      ⏳ Memuat aplikasi...<br />
-      Mohon tunggu sebentar, koneksi Anda sedang diperiksa.
+      <div>⏳ Memuat aplikasi...</div>
+
+      {/* 🔵 Animasi tiga titik */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginTop: 12,
+          gap: 8,
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#fff",
+              opacity: 0.8,
+              animation: `pulse 1.5s ease-in-out ${i * 0.2}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* 🧩 Tambahkan CSS animasi lewat <style> inline */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; }
+            40% { transform: scale(1.2); opacity: 1; }
+          }
+        `}
+      </style>
     </div>
   );
 }
-
-
 
   return (
     <Routes>
