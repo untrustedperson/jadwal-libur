@@ -9,14 +9,14 @@ import {
 } from "react-router-dom";
 import Login from "./Login";
 import Register from "./Register";
-import ResetPassword from "./ResetPassword";
 import Calendar from "./calendar";
 import Dashboard from "./Dashboard";
 import ManageEmployees from "./ManageEmployees";
+import ResetPassword from "./ResetPassword";
 import { auth, db } from "./firebaseConfig";
 import { onSnapshot, doc } from "firebase/firestore";
 
-// ✅ Private Route untuk proteksi halaman berdasarkan role
+// ✅ Komponen PrivateRoute
 function PrivateRoute({
   children,
   allowedRoles,
@@ -30,154 +30,134 @@ function PrivateRoute({
   return children;
 }
 
-// ✅ Komponen utama dengan kontrol auth & role
+// ✅ Komponen utama yang mengatur logika auth & navigasi
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [_role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-  // 🕒 Fallback otomatis setelah 5 detik jika auth state tidak terdeteksi
-  timeoutId = setTimeout(() => {
-    console.warn("⏳ Timeout: auth state tidak terdeteksi, alihkan ke /login.");
-    setLoading(false);
-    navigate("/login", { replace: true });
-  }, 5000);
 
-  const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-    if (timeoutId) clearTimeout(timeoutId); // ✅ Batalkan fallback jika listener terpicu
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      const isDeletingUser = localStorage.getItem("deleting_user") === "true";
 
-    const isDeletingUser = localStorage.getItem("deleting_user") === "true";
+      if (!user && !isDeletingUser) {
+        const localRole = localStorage.getItem("role");
+        if (localRole === "dev") {
+          console.log("⚠️ Auth token invalid tapi role dev tetap dipertahankan.");
+          setLoading(false);
+          return;
+        }
 
-    if (!user && !isDeletingUser) {
-      const localRole = localStorage.getItem("role");
-      if (localRole === "dev") {
-        console.log("⚠️ Auth token invalid tapi role dev tetap dipertahankan.");
+        setRole(null);
+        localStorage.removeItem("role");
+        setLoading(false);
+
+        if (
+          location.pathname !== "/login" &&
+          location.pathname !== "/register" &&
+          location.pathname !== "/reset-password"
+        ) {
+          navigate("/login", { replace: true });
+        }
+        return;
+      }
+
+      if (!user) {
         setLoading(false);
         return;
       }
 
-      setRole(null);
-      localStorage.removeItem("role");
-      setLoading(false);
+      const roleRef = doc(db, "roles", user.uid);
+      const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const newRole = docSnap.data().role;
+          const oldRole = localStorage.getItem("role");
 
-      const PUBLIC_PATHS = ["/login", "/register", "/reset-password"];
-      if (!PUBLIC_PATHS.includes(location.pathname)) {
-        navigate("/login", { replace: true });
-      }
-      return;
-    }
+          if (newRole !== oldRole) {
+            console.log(`🔄 Role berubah: ${oldRole || "none"} → ${newRole}`);
+            localStorage.setItem("role", newRole);
+            setRole(newRole);
+          } else if (!oldRole) {
+            localStorage.setItem("role", newRole);
+            setRole(newRole);
+          }
 
-    // ✅ Jika user kosong, akhiri loading
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const roleRef = doc(db, "roles", user.uid);
-    const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const newRole = docSnap.data().role;
-        const oldRole = localStorage.getItem("role");
-
-        if (newRole !== oldRole || !oldRole) {
-          localStorage.setItem("role", newRole);
-          setRole(newRole);
+          // Navigasi otomatis setelah login/register
+          if (newRole === "admin" || newRole === "viewer") {
+            if (
+              location.pathname === "/login" ||
+              location.pathname === "/register" ||
+              location.pathname === "/reset-password"
+            ) {
+              navigate("/calendar", { replace: true });
+            }
+          } else if (newRole === "dev") {
+            if (
+              location.pathname === "/login" ||
+              location.pathname === "/register" ||
+              location.pathname === "/reset-password"
+            ) {
+              navigate("/dashboard", { replace: true });
+            }
+          }
+        } else {
+          console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
+          localStorage.setItem("role", "viewer");
+          setRole("viewer");
+          if (
+            location.pathname === "/login" ||
+            location.pathname === "/register" ||
+            location.pathname === "/reset-password"
+          ) {
+            navigate("/calendar", { replace: true });
+          }
         }
 
-        const AUTH_PAGES = ["/login", "/register"];
-        if (AUTH_PAGES.includes(location.pathname)) {
-          if (newRole === "dev") navigate("/dashboard", { replace: true });
-          else navigate("/calendar", { replace: true });
-        }
-      } else {
-        console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
-        localStorage.setItem("role", "viewer");
-        setRole("viewer");
+        setLoading(false);
+      });
 
-        const AUTH_PAGES = ["/login", "/register"];
-        if (AUTH_PAGES.includes(location.pathname)) {
-          navigate("/calendar", { replace: true });
-        }
-      }
-
-      setLoading(false);
+      return () => unsubscribeRole();
     });
 
+    // ✅ Fallback agar mobile tidak stuck di "memuat aplikasi"
+    timeoutId = setTimeout(() => {
+      console.warn("⏳ Timeout: auth state lambat, keluar dari loading.");
+      setLoading(false);
+    }, 10000); // 10 detik timeout
+
     return () => {
-      try {
-        unsubscribeRole();
-      } catch (e) {
-        console.warn("unsubscribeRole gagal:", e);
-      }
+      unsubscribeAuth();
+      clearTimeout(timeoutId);
     };
-  });
+  }, [navigate, location.pathname]);
 
-  // ✅ Bersihkan listener & timeout saat unmount
-  return () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    unsubscribeAuth();
-  };
-}, [navigate, location.pathname]);
-
-
- if (loading) {
-  return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        fontSize: 18,
-        color: "#2563eb",
-        fontWeight: 600,
-        background: "linear-gradient(135deg, #2563eb, #60a5fa)",
-        textAlign: "center",
-      }}
-    >
-      <div>⏳ Memuat aplikasi...</div>
-
-      {/* 🔵 Animasi tiga titik */}
+  if (loading) {
+    return (
       <div
         style={{
+          height: "100dvh",
+          minHeight: "100svh",
+          width: "100%",
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
-          marginTop: 12,
-          gap: 8,
+          alignItems: "center",
+          fontSize: 18,
+          color: "#2563eb",
+          fontWeight: 600,
+          background: "linear-gradient(135deg, #2563eb, #60a5fa)",
+          textAlign: "center",
+          overflow: "hidden",
         }}
       >
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: "#fff",
-              opacity: 0.8,
-              animation: `pulse 1.5s ease-in-out ${i * 0.2}s infinite`,
-            }}
-          />
-        ))}
+        ⏳ Memuat aplikasi...
       </div>
-
-      {/* 🧩 Tambahkan CSS animasi lewat <style> inline */}
-      <style>
-        {`
-          @keyframes pulse {
-            0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; }
-            40% { transform: scale(1.2); opacity: 1; }
-          }
-        `}
-      </style>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <Routes>
@@ -209,7 +189,7 @@ useEffect(() => {
         }
       />
 
-      {/* Default Route */}
+      {/* Default route */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
