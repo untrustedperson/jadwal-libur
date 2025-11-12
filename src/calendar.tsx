@@ -762,55 +762,60 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
         )}
         
         {/* === TABEL PENGAJUAN PENDING === */}
-        {canEdit && (
-          <div
-            style={{
-                  background: "#fff",
-                  borderRadius: 16,
-                  padding: 24,
-                  marginBottom: 24,
-                  boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-                  color: "#111827",
-                  position: "relative",
-            }}
-          >
-            <h2 style={{ 
-                  color: "#1e3a8a",
-                  fontWeight: 700,
-                  fontSize: "1.4rem",
-                  marginBottom: 16,
-              }}>
-              🕒 Daftar Pengajuan Pending
-            </h2>
-             {/* Dropdown urutkan */}
-        <div style={{  
-            color: "#111827",
-            position: "absolute",
-            top: 24,
-            right: 24,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "rgba(255,255,255,0.9)",
-            padding: "4px 8px",
-            borderRadius: 8,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.1)", 
-          }}
-          >
-          <select
+{canEdit && (
+  <div
+    style={{
+      background: "#fff",
+      borderRadius: 16,
+      padding: "32px 24px",
+      marginBottom: 24,
+      boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+      color: "#111827",
+    }}
+  >
+    {/* Header dengan judul dan dropdown */}
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        marginBottom: 20,
+        gap: 12,
+      }}
+    >
+      <h2
+        style={{
+          color: "#1e3a8a",
+          fontWeight: 700,
+          fontSize: "1.4rem",
+        }}
+      >
+        🕒 Daftar Pengajuan Pending
+      </h2>
+
+      {/* Dropdown urutkan */}
+      <div style={{ width: "260px", minWidth: "180px" }}>
+        <select
           id="pending-sort"
           value={pendingSort}
           onChange={(e) => setPendingSort(e.target.value as PendingSort)}
           style={{
-            padding: "8px 12px",
+            width: "100%",
+            padding: "10px 12px",
             borderRadius: 8,
             border: "1px solid #d1d5db",
             fontSize: 14,
             background: "#fff",
-            color: pendingSort ? "#111827" : "#6b7280", // abu-abu kalau belum dipilih
+            color: pendingSort ? "#111827" : "#6b7280",
             fontWeight: 500,
             cursor: "pointer",
-            minWidth: 180,
+            appearance: "none",
+            backgroundImage:
+              "linear-gradient(45deg, transparent 50%, #2563eb 50%), linear-gradient(135deg, #2563eb 50%, transparent 50%)",
+            backgroundPosition: "calc(100% - 16px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px)",
+            backgroundSize: "4px 4px, 4px 4px",
+            backgroundRepeat: "no-repeat",
           }}
         >
           <option value="" disabled hidden>
@@ -823,97 +828,103 @@ const sortedPending = [...pendingEvents].sort((a, b) => {
           <option value="created-new">Diajukan: Terbaru → Terlama</option>
           <option value="created-old">Diajukan: Terlama → Terbaru</option>
         </select>
+      </div>
     </div>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                background: "#f9fafb",
-                marginTop: 10,
-                tableLayout: "auto",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
-                  <th style={{ padding: "12px 10px", width: "25%" }}>Pegawai</th>                
-                  <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal libur</th>
-                  <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
-                  <th style={{ padding: "12px 10px", width: "20%" }}>Diajukan Pada</th>
-                  <th style={{ padding: "12px 10px", minWidth: "220", textAlign: "left" }}>Aksi</th>
-                </tr>
-              </thead>
 
-<tbody>
-  {sortedPending.length ? (
-    sortedPending.map((e) => (
-      <tr key={e.id} style={{ borderBottom: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
-        <td style={{ padding: "12px 10px", color: "#111827", fontWeight: 500, wordBreak: "break-word" }}>
-          {e.employee}
-        </td>
-        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
-        {e.start}
-        </td>
-        <td style={{ padding: "12px 10px", color: "#111827", wordBreak: "break-word" }}>
-          {Array.isArray(e.leaveType) ? e.leaveType.join(", ") : e.leaveType}
-        </td>
-        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
-        {formatDateTime(e.createdAt)}
-        </td>
-        <td style={{ padding: "12px 10px", color: "#111827", whiteSpace: "nowrap" }}>
-        </td>
-        <td
-          style={{
-            padding: "12px 10px",
-            textAlign: "left",
-            verticalAlign: "middle",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", maxWidth: "100%" }}>
-            <button
-              onClick={() => approveEvent(e.id!)}
-              style={{
-                background: "#16a34a",
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                padding: "6px 12px",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
-              Setujui
-            </button>
-            <button
-              onClick={() => rejectEvent(e.id!)}
-              style={{
-                background: "#dc2626",
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                padding: "6px 12px",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
-              Tolak
-            </button>
-          </div>
-        </td>
-      </tr>
-    ))
-  ) : (
-    <tr>
-      <td colSpan={5} style={{ textAlign: "center", padding: 12, color: "#6b7280", fontStyle: "italic" }}>
-        Tidak ada pengajuan pending.
-      </td>
-    </tr>
-  )}
-</tbody>
-
-            </table>
-          </div>
-        )}
+    {/* Tabel Pending */}
+    <div style={{ overflowX: "auto" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          background: "#f9fafb",
+          borderRadius: 12,
+          overflow: "hidden",
+          color: "#111827",
+        }}
+      >
+        <thead>
+          <tr style={{ background: "#f3f4f6", textAlign: "left" }}>
+            <th style={{ padding: "12px 10px", width: "25%" }}>Pegawai</th>
+            <th style={{ padding: "12px 10px", width: "25%" }}>Tanggal Libur</th>
+            <th style={{ padding: "12px 10px", width: "30%" }}>Jenis Libur</th>
+            <th style={{ padding: "12px 10px", width: "20%" }}>Diajukan Pada</th>
+            <th style={{ padding: "12px 10px", minWidth: 180 }}>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedPending.length ? (
+            sortedPending.map((e) => (
+              <tr
+                key={e.id}
+                style={{
+                  borderBottom: "1px solid #e5e7eb",
+                  backgroundColor: "#fff",
+                  transition: "background 0.2s",
+                }}
+                onMouseEnter={(ev) => (ev.currentTarget.style.background = "#eef2ff")}
+                onMouseLeave={(ev) => (ev.currentTarget.style.background = "#fff")}
+              >
+                <td style={{ padding: "12px 10px", fontWeight: 500 }}>{e.employee}</td>
+                <td style={{ padding: "12px 10px" }}>{e.start}</td>
+                <td style={{ padding: "12px 10px" }}>
+                  {Array.isArray(e.leaveType) ? e.leaveType.join(", ") : e.leaveType}
+                </td>
+                <td style={{ padding: "12px 10px" }}>{formatDateTime(e.createdAt)}</td>
+                <td style={{ padding: "12px 10px" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => approveEvent(e.id!)}
+                      style={{
+                        background: "#16a34a",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Setujui
+                    </button>
+                    <button
+                      onClick={() => rejectEvent(e.id!)}
+                      style={{
+                        background: "#dc2626",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Tolak
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td
+                colSpan={5}
+                style={{
+                  textAlign: "center",
+                  padding: 12,
+                  color: "#6b7280",
+                  fontStyle: "italic",
+                }}
+              >
+                Tidak ada pengajuan pending.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
         {/* === REKAP DATA PEGAWAI === */}
         <div
