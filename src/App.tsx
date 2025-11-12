@@ -45,14 +45,16 @@ useEffect(() => {
       const localRole = localStorage.getItem("role");
       if (localRole === "dev") {
         console.log("⚠️ Auth token invalid tapi role dev tetap dipertahankan.");
+        setLoading(false); // ✅ FIX: pastikan tetap hilang loading
         return;
       }
 
       setRole(null);
       localStorage.removeItem("role");
+
+      // ✅ Pastikan loading di-set ke false walau user tidak ada
       setLoading(false);
 
-      // ✅ Izinkan halaman publik: login, register, reset-password
       const PUBLIC_PATHS = ["/login", "/register", "/reset-password"];
       if (!PUBLIC_PATHS.includes(location.pathname)) {
         navigate("/login", { replace: true });
@@ -60,7 +62,11 @@ useEffect(() => {
       return;
     }
 
-    if (!user) return; // penting: jangan lanjut ke listener role saat tidak ada user
+    // ✅ FIX: Tambahkan guard agar tidak menggantung
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const roleRef = doc(db, "roles", user.uid);
     const unsubscribeRole = onSnapshot(roleRef, (docSnap) => {
@@ -73,7 +79,6 @@ useEffect(() => {
           setRole(newRole);
         }
 
-        // ✅ Jangan mengganggu halaman reset-password
         const AUTH_PAGES = ["/login", "/register"];
         if (AUTH_PAGES.includes(location.pathname)) {
           if (newRole === "dev") navigate("/dashboard", { replace: true });
@@ -83,7 +88,7 @@ useEffect(() => {
         console.warn("⚠️ Role tidak ditemukan di Firestore, menetapkan viewer...");
         localStorage.setItem("role", "viewer");
         setRole("viewer");
-        // Hanya auto-redirect jika memang lagi di halaman auth
+
         const AUTH_PAGES = ["/login", "/register"];
         if (AUTH_PAGES.includes(location.pathname)) {
           navigate("/calendar", { replace: true });
@@ -93,29 +98,40 @@ useEffect(() => {
       setLoading(false);
     });
 
-    return () => unsubscribeRole();
+    // ✅ Pastikan unsubscribeRole tidak menyebabkan race
+    return () => {
+      try {
+        unsubscribeRole();
+      } catch (e) {
+        console.warn("unsubscribeRole gagal (bisa diabaikan):", e);
+      }
+    };
   });
 
   return () => unsubscribeAuth();
 }, [navigate, location.pathname]);
 
   if (loading) {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: 18,
-          color: "#2563eb",
-          fontWeight: 600,
-        }}
-      >
-        ⏳ Memuat aplikasi...
-      </div>
-    );
-  }
+  return (
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        fontSize: 18,
+        color: "#2563eb",
+        fontWeight: 600,
+        padding: 20,
+        textAlign: "center",
+      }}
+    >
+      ⏳ Memuat aplikasi...<br />
+      Mohon tunggu sebentar, koneksi Anda sedang diperiksa.
+    </div>
+  );
+}
+
 
 
   return (
