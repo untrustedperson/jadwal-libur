@@ -1,0 +1,40 @@
+        .fc .fc-toolbar-title {
+          color: #1e3a8a !important;
+          font-weight: 700 !important;
+          font-size: 1.4rem !important;
+        }
+        .fc .fc-col-header-cell-cushion {
+          color: #111827 !important;
+          font-weight: 600 !important;
+        }
+        .fc .fc-daygrid-day-number {
+          color: #111827 !important;
+          font-weight: 700 !important;
+        }
+        .fc .fc-button {
+          background: #2563eb !important;
+          border: none !important;
+          color: #fff !important;
+          font-weight: 600 !important;
+          border-radius: 6px !important;
+        }
+        .fc .fc-button:hover {
+          background: #1e40af !important;
+        }
+        .fc-theme-standard td,
+        .fc-theme-standard th {
+          border-color: #e5e7eb !important;
+        }
+        .fc .fc-scrollgrid {
+          background-color: #ffffff !important;
+        }
+        .fc-daygrid-day-frame {
+      min-height: 120px !important; /* ✅ agar tiap kolom lebih tinggi */
+    }
+      .fc-daygrid-day {
+      padding: 6px !important;
+    }
+    .fc-toolbar-title {
+      color: #1e3a8a !important;
+      font-size: 1.3rem !important;
+    }
