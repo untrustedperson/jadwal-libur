@@ -4,6 +4,8 @@ import { Resend } from "resend";
 
 // --- Init Admin SDK (gunakan _firebase.ts kamu kalau sudah ada) ---
 if (!admin.apps.length) {
+  console.log("Start function");
+  console.log("Init Firebase");
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
@@ -36,6 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 });
 
     // Buat link reset
+    console.log("Generate reset link");
     const link = await admin.auth().generatePasswordResetLink(email, {
       url: CONTINUE_URL,
       handleCodeInApp: false,
@@ -43,6 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Kirim via Resend
     const from = process.env.MAIL_FROM || "no-reply@yourdomain.com";
+    console.log("Send email");
     await resend.emails.send({
       from,
       to: email,
