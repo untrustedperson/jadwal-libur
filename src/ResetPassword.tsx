@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "./firebase"; // sesuaikan dengan lokasi file Anda
 
 export default function ResetPassword() {
   const [email, setEmail] = useState("");
@@ -9,33 +11,32 @@ export default function ResetPassword() {
 
 async function handleReset(e: React.FormEvent) {
   e.preventDefault();
-  setMsg("");
-  setErr("");
+
   setLoading(true);
+  setErr("");
+  setMsg("");
 
   try {
-    const res = await fetch("/api/send-reset", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ email }),
-});
+    await sendPasswordResetEmail(auth, email);
 
-const text = await res.text();
-console.log("Response:", text);
+    setMsg(
+      "Jika email terdaftar, tautan reset password telah dikirim. Silakan cek Inbox atau folder Spam."
+    );
+  } catch (error: any) {
+    console.error(error);
 
-let data;
+    switch (error.code) {
+      case "auth/invalid-email":
+        setErr("Format email tidak valid.");
+        break;
 
-try {
-  data = JSON.parse(text);
-} catch {
-  throw new Error(text || "Server mengembalikan response yang tidak valid");
-}
+      case "auth/too-many-requests":
+        setErr("Terlalu banyak permintaan. Coba lagi nanti.");
+        break;
 
-if (!res.ok) {
-  throw new Error(data.error || "Gagal mengirim tautan reset");
-}
+      default:
+        setErr("Gagal mengirim email reset password.");
+    }
   } finally {
     setLoading(false);
   }
