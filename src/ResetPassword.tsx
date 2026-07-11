@@ -15,17 +15,27 @@ async function handleReset(e: React.FormEvent) {
 
   try {
     const res = await fetch("/api/send-reset", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Gagal mengirim tautan reset");
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ email }),
+});
 
-    setMsg("Tautan reset password sudah dikirim. Cek inbox/SPAM email Anda.");
-  } catch (e: any) {
-    console.error("reset error:", e);
-    setErr(e?.message || "Gagal mengirim tautan reset.");
+const text = await res.text();
+console.log("Response:", text);
+
+let data;
+
+try {
+  data = JSON.parse(text);
+} catch {
+  throw new Error(text || "Server mengembalikan response yang tidak valid");
+}
+
+if (!res.ok) {
+  throw new Error(data.error || "Gagal mengirim tautan reset");
+}
   } finally {
     setLoading(false);
   }

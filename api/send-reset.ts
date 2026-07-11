@@ -26,6 +26,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const CONTINUE_URL =
       process.env.CONTINUE_URL || "https://jadwal-libur-app.web.app/login";
 
+    console.log({
+  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+  FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+  FIREBASE_PRIVATE_KEY: !!process.env.FIREBASE_PRIVATE_KEY,
+  RESEND_API_KEY: !!process.env.RESEND_API_KEY,
+  MAIL_FROM: process.env.MAIL_FROM,
+  CONTINUE_URL: process.env.CONTINUE_URL,
+});
+
     // Buat link reset
     const link = await admin.auth().generatePasswordResetLink(email, {
       url: CONTINUE_URL,
@@ -48,7 +57,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ success: true });
   } catch (e: any) {
-    console.error("send-reset error:", e);
-    return res.status(500).json({ error: e?.message || "Server error" });
-  }
+  console.error("send-reset error:", e);
+  console.error("message:", e?.message);
+  console.error("stack:", e?.stack);
+
+  return res.status(500).json({
+    error: e?.message || "Server error",
+  });
+}
 }
